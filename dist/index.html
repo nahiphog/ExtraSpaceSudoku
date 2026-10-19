@@ -15,10 +15,13 @@
       <section class="hero" aria-labelledby="page-title">
         <div class="eyebrow"><span></span> pattern studio</div>
         <h1 id="page-title">Extra Space<br /><em>Sudoku</em></h1>
-        <p class="intro">A calm, empty grid with a precise spatial rule: three shaded cells in every row, column, and box.</p>
-        <button id="generate" class="generate-button" type="button">
-          <span class="spark">✦</span> Generate <span class="shortcut">G</span>
-        </button>
+        <p class="intro">A precise spatial puzzle: three shaded cells and the digits 1–6 exactly once in every row, column, and box.</p>
+        <div class="hero-actions">
+          <button id="generate" class="generate-button" type="button">
+            <span class="spark">✦</span> Generate <span class="shortcut">G</span>
+          </button>
+          <a class="simulation-button" href="./simulation/">Simulation <span aria-hidden="true">↗</span></a>
+        </div>
         <label class="symmetry-toggle" for="symmetry">
           <input id="symmetry" type="checkbox" />
           <span class="toggle-track" aria-hidden="true"><span></span></span>
@@ -27,16 +30,26 @@
         <p id="status" class="status" aria-live="polite">Ready for a new arrangement.</p>
       </section>
 
-      <section class="board-panel" aria-label="Generated Extra Space Sudoku grid">
+      <section class="board-panel" aria-label="Generated Extra Space Sudoku grids">
         <div class="panel-topline">
-          <span>09 × 09 grid</span>
-          <span class="live-dot">● live pattern</span>
+          <span>09 × 09 grids</span>
+          <span class="live-dot">● uniquely dug</span>
         </div>
-        <div id="grid" class="sudoku-grid" role="grid" aria-label="Extra Space Sudoku shading pattern"></div>
-        <div class="legend"><span class="legend-swatch"></span> Grey cells mark the extra spaces</div>
+        <div class="grid-pair">
+          <div class="grid-card">
+            <div class="grid-heading"><span>Dug puzzle</span><span id="clue-count">— clues</span></div>
+            <div id="puzzle-grid" class="sudoku-grid" role="grid" aria-label="Dug Extra Space Sudoku puzzle"></div>
+          </div>
+          <div class="grid-card">
+            <div class="grid-heading"><span>Completed</span><span>solution</span></div>
+            <div id="solution-grid" class="sudoku-grid" role="grid" aria-label="Completed Extra Space Sudoku solution"></div>
+          </div>
+        </div>
+        <div class="legend"><span class="legend-swatch"></span> Grey cells are extra spaces · the left puzzle has a unique solution</div>
+        <div class="stats" aria-label="Puzzle generation statistics"><span>Generation time <strong id="elapsed">—</strong></span><span>Remaining cells <strong id="remaining">—</strong></span></div>
       </section>
     </main>
-    <footer><span>EXTRA SPACE SUDOKU</span><span>Every line holds exactly three spaces.</span></footer>
+    <footer><span>EXTRA SPACE SUDOKU</span><span><a href="./simulation/">Simulation</a> · Every line holds exactly three spaces.</span></footer>
     <script src="./app.js"></script>
   </body>
 </html>

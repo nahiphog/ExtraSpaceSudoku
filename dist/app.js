@@ -1,7 +1,11 @@
-const grid = document.querySelector('#grid');
+const puzzleGrid = document.querySelector('#puzzle-grid');
+const solutionGrid = document.querySelector('#solution-grid');
 const button = document.querySelector('#generate');
 const status = document.querySelector('#status');
 const symmetry = document.querySelector('#symmetry');
+const clueCount = document.querySelector('#clue-count');
+const elapsed = document.querySelector('#elapsed');
+const remaining = document.querySelector('#remaining');
 
 function shuffled(values) {
   const copy = [...values];
@@ -64,25 +68,170 @@ function makeSymmetricPattern() {
   return pattern;
 }
 
-function render(pattern) {
+function boxIndex(row, column) {
+  return Math.floor(row / 3) * 3 + Math.floor(column / 3);
+}
+
+function digitsFromMask(mask) {
+  return shuffled([1, 2, 3, 4, 5, 6].filter((digit) => !(mask & (1 << digit))));
+}
+
+// Randomized minimum-remaining-values search. A white cell is assigned only
+// when its digit remains unique in its row, column, and 3×3 outlined region.
+function fillDigits(pattern) {
+  const values = Array.from({ length: 9 }, () => Array(9).fill(null));
+  const rowUsed = Array(9).fill(0);
+  const columnUsed = Array(9).fill(0);
+  const boxUsed = Array(9).fill(0);
+  const cells = [];
+
+  for (let row = 0; row < 9; row++) {
+    for (let column = 0; column < 9; column++) {
+      if (!pattern[row][column]) cells.push({ row, column, box: boxIndex(row, column) });
+    }
+  }
+
+  function solve(remaining) {
+    if (!remaining.length) return true;
+    let bestCount = 7;
+    let bestIndexes = [];
+    const candidates = new Map();
+
+    remaining.forEach((cell, index) => {
+      const used = rowUsed[cell.row] | columnUsed[cell.column] | boxUsed[cell.box];
+      const options = digitsFromMask(used);
+      candidates.set(index, options);
+      if (options.length < bestCount) {
+        bestCount = options.length;
+        bestIndexes = [index];
+      } else if (options.length === bestCount) {
+        bestIndexes.push(index);
+      }
+    });
+
+    if (!bestCount) return false;
+    const chosenIndex = bestIndexes[Math.floor(Math.random() * bestIndexes.length)];
+    const cell = remaining[chosenIndex];
+    const next = remaining.filter((_, index) => index !== chosenIndex);
+
+    for (const digit of candidates.get(chosenIndex)) {
+      const flag = 1 << digit;
+      values[cell.row][cell.column] = digit;
+      rowUsed[cell.row] |= flag;
+      columnUsed[cell.column] |= flag;
+      boxUsed[cell.box] |= flag;
+      if (solve(next)) return true;
+      values[cell.row][cell.column] = null;
+      rowUsed[cell.row] &= ~flag;
+      columnUsed[cell.column] &= ~flag;
+      boxUsed[cell.box] &= ~flag;
+    }
+    return false;
+  }
+
+  return solve(cells) ? values : null;
+}
+
+function makePuzzle() {
+  // Regenerate the shading if an unusual layout has no compatible 1–6 fill.
+  for (let attempt = 0; attempt < 100; attempt++) {
+    const pattern = symmetry.checked ? makeSymmetricPattern() : makePattern();
+    const values = fillDigits(pattern);
+    if (values) return { pattern, values };
+  }
+  throw new Error('Could not make a valid Extra Space Sudoku.');
+}
+
+function countSolutions(pattern, givens, limit = 2) {
+  const rowUsed = Array(9).fill(0);
+  const columnUsed = Array(9).fill(0);
+  const boxUsed = Array(9).fill(0);
+  const cells = [];
+
+  for (let row = 0; row < 9; row++) {
+    for (let column = 0; column < 9; column++) {
+      if (pattern[row][column]) continue;
+      const box = boxIndex(row, column);
+      const digit = givens[row][column];
+      if (digit) {
+        const flag = 1 << digit;
+        if ((rowUsed[row] | columnUsed[column] | boxUsed[box]) & flag) return 0;
+        rowUsed[row] |= flag;
+        columnUsed[column] |= flag;
+        boxUsed[box] |= flag;
+      } else {
+        cells.push({ row, column, box });
+      }
+    }
+  }
+
+  let solutions = 0;
+  function search(openCells) {
+    if (solutions >= limit) return;
+    if (!openCells.length) { solutions++; return; }
+    let bestIndex = -1;
+    let bestOptions = null;
+    openCells.forEach((cell, index) => {
+      const options = digitsFromMask(rowUsed[cell.row] | columnUsed[cell.column] | boxUsed[cell.box]);
+      if (!bestOptions || options.length < bestOptions.length) { bestIndex = index; bestOptions = options; }
+    });
+    if (!bestOptions.length) return;
+    const cell = openCells[bestIndex];
+    const next = openCells.filter((_, index) => index !== bestIndex);
+    for (const digit of bestOptions) {
+      const flag = 1 << digit;
+      rowUsed[cell.row] |= flag; columnUsed[cell.column] |= flag; boxUsed[cell.box] |= flag;
+      search(next);
+      rowUsed[cell.row] &= ~flag; columnUsed[cell.column] &= ~flag; boxUsed[cell.box] &= ~flag;
+      if (solutions >= limit) return;
+    }
+  }
+  search(cells);
+  return solutions;
+}
+
+function digPuzzle(pattern, solution) {
+  const givens = solution.map((row) => row.map((digit) => digit));
+  const cells = shuffled(Array.from({ length: 81 }, (_, index) => index).filter((index) => !pattern[Math.floor(index / 9)][index % 9]));
+  for (const index of cells) {
+    const row = Math.floor(index / 9);
+    const column = index % 9;
+    const digit = givens[row][column];
+    givens[row][column] = null;
+    if (countSolutions(pattern, givens) !== 1) givens[row][column] = digit;
+  }
+  return givens;
+}
+
+function render(grid, pattern, values, isDug = false) {
   grid.replaceChildren();
   pattern.flat().forEach((shaded, index) => {
     const row = Math.floor(index / 9);
     const col = index % 9;
     const cell = document.createElement('div');
-    cell.className = `cell${shaded ? ' shaded' : ''}${col % 3 === 2 ? ' box-right' : ''}${row % 3 === 2 ? ' box-bottom' : ''}`;
+    const empty = !shaded && values[row][col] === null;
+    cell.className = `cell${shaded ? ' shaded' : ''}${empty ? ' empty' : ''}${col % 3 === 2 ? ' box-right' : ''}${row % 3 === 2 ? ' box-bottom' : ''}`;
     cell.setAttribute('role', 'gridcell');
-    cell.setAttribute('aria-label', `Row ${row + 1}, column ${col + 1}${shaded ? ', shaded' : ', blank'}`);
+    if (!shaded && !empty) cell.textContent = values[row][col];
+    cell.setAttribute('aria-label', `Row ${row + 1}, column ${col + 1}${shaded ? ', shaded' : empty ? ', empty' : `, ${values[row][col]}`}`);
     grid.append(cell);
   });
 }
 
 function generate() {
+  const started = performance.now();
   const isSymmetric = symmetry.checked;
-  render(isSymmetric ? makeSymmetricPattern() : makePattern());
+  const { pattern, values } = makePuzzle();
+  const dug = digPuzzle(pattern, values);
+  const clues = dug.flat().filter((value) => value !== null).length;
+  render(puzzleGrid, pattern, dug, true);
+  render(solutionGrid, pattern, values);
+  clueCount.textContent = `${clues} clues`;
+  remaining.textContent = `${clues} cells`;
+  elapsed.textContent = `${(performance.now() - started).toFixed(1)} ms`;
   status.textContent = isSymmetric
-    ? 'New rotationally symmetric arrangement generated — 27 shaded cells.'
-    : 'New arrangement generated — 27 shaded cells.';
+    ? 'Unique rotationally symmetric puzzle generated.'
+    : 'Unique puzzle generated.';
 }
 
 button.addEventListener('click', generate);
