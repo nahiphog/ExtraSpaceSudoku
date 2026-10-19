@@ -9,9 +9,10 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Fraunces:opsz,wght@9..144,600;9..144,700&display=swap" rel="stylesheet" />
     <link rel="stylesheet" href="./simulation.css" />
+    <style>.grid .cell { aspect-ratio: 1; }</style>
   </head>
   <body>
-    <nav class="site-nav" aria-label="Main navigation"><a class="site-brand" href="../">Extra Space Sudoku</a><details class="nav-menu"><summary>Pages</summary><div><a href="../">Generate</a><a class="active" href="./">Simulation</a></div></details></nav>
+    <nav class="site-nav" aria-label="Main navigation"><a class="site-brand" href="../index.html">Extra Space Sudoku</a><details class="nav-menu"><summary>Pages</summary><div><a href="../index.html">Generate</a><a class="active" href="./index.html">Simulation</a></div></details></nav>
     <main class="simulation-shell">
       <section class="simulation-intro" aria-labelledby="simulation-title">
         <p class="eyebrow">Grid laboratory</p>
@@ -19,6 +20,7 @@
         <p class="simulation-lede">Generate uniquely dug Extra Space Sudoku puzzles and watch their remaining-clue counts form a distribution.</p>
         <div class="simulation-controls">
           <label>Total number of trials<select id="trial-count"><option value="1">1</option><option value="10" selected>10</option><option value="50">50</option><option value="100">100</option><option value="500">500</option></select></label>
+          <label>Only display puzzles with at most<select id="given-cell-limit"><option value="12">12 clues</option><option value="15">15 clues</option><option value="18" selected>18 clues</option><option value="21">21 clues</option><option value="24">24 clues</option><option value="54">54 clues</option></select></label>
           <label>Grid type<select id="symmetry"><option value="false" selected>Any valid pattern</option><option value="true">180° rotational symmetry</option></select></label>
         </div>
         <div class="simulation-actions"><button id="run-simulation" type="button"><span aria-hidden="true">✦</span> Run simulation</button><button id="stop-simulation" class="secondary-button" type="button" disabled>Stop</button></div>
@@ -28,7 +30,7 @@
         <div class="results-heading"><div><p class="eyebrow">Live result</p><h2>Final-puzzle clue tallies</h2></div><p id="tally-summary" class="tally-summary">No puzzles yet</p></div>
         <div id="histogram" class="histogram" role="img" aria-label="Histogram of final puzzle clue tallies"></div>
         <p class="histogram-note">Every final, irreducible puzzle is counted here. Each result has a unique solution; no displayed clue can be removed on its own.</p>
-        <div class="sample-heading"><h2>Latest dug puzzles</h2><p>Grey cells are the fixed extra spaces.</p></div>
+        <div class="sample-heading"><h2>Qualifying dug puzzles</h2><p>Only puzzles at or under the selected clue cap are shown.</p></div>
         <div id="sample-grids" class="sample-grids" aria-live="polite"></div>
       </section>
     </main>
