@@ -6,6 +6,7 @@ const symmetry = document.querySelector('#symmetry');
 const clueCount = document.querySelector('#clue-count');
 const elapsed = document.querySelector('#elapsed');
 const remaining = document.querySelector('#remaining');
+let currentPuzzle = null;
 
 function shuffled(values) {
   const copy = [...values];
@@ -142,6 +143,19 @@ function makePuzzle() {
   throw new Error('Could not make a valid Extra Space Sudoku.');
 }
 
+function toExtraSudokuSpace(pattern, values) {
+  const spaces = pattern.flat().map((shaded) => shaded ? '1' : '0').join('');
+  const givens = values.flat().map((value) => value ?? '0').join('');
+  return spaces + givens;
+}
+
+async function copyCurrent(kind) {
+  if (!currentPuzzle) return;
+  const values = kind === 'dug' ? currentPuzzle.dug : currentPuzzle.values;
+  await navigator.clipboard.writeText(toExtraSudokuSpace(currentPuzzle.pattern, values));
+  status.textContent = `${kind === 'dug' ? 'Dug puzzle' : 'Completed grid'} copied as a 162-character ExtraSudokuSpace string.`;
+}
+
 function countSolutions(pattern, givens, limit = 2) {
   const rowUsed = Array(9).fill(0);
   const columnUsed = Array(9).fill(0);
@@ -223,6 +237,7 @@ function generate() {
   const isSymmetric = symmetry.checked;
   const { pattern, values } = makePuzzle();
   const dug = digPuzzle(pattern, values);
+  currentPuzzle = { pattern, values, dug };
   const clues = dug.flat().filter((value) => value !== null).length;
   render(puzzleGrid, pattern, dug, true);
   render(solutionGrid, pattern, values);
@@ -236,6 +251,8 @@ function generate() {
 
 button.addEventListener('click', generate);
 symmetry.addEventListener('change', generate);
+document.querySelector('#copy-dug').addEventListener('click', () => copyCurrent('dug'));
+document.querySelector('#copy-solution').addEventListener('click', () => copyCurrent('solution'));
 window.addEventListener('keydown', (event) => {
   if (event.key.toLowerCase() === 'g' && !/input|textarea|select/i.test(document.activeElement.tagName)) generate();
 });
