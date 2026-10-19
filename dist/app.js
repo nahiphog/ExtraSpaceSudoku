@@ -1,6 +1,7 @@
 const grid = document.querySelector('#grid');
 const button = document.querySelector('#generate');
 const status = document.querySelector('#status');
+const symmetry = document.querySelector('#symmetry');
 
 function shuffled(values) {
   const copy = [...values];
@@ -31,6 +32,38 @@ function makePattern() {
   return pattern;
 }
 
+// A cyclic construction with a mirrored row and stack rule. It produces three
+// cells in every row, column and box, while a cell at (r, c) always has a mate
+// at (8-r, 8-c). The centre cell is necessarily shaded to make the odd total.
+function makeSymmetricPattern() {
+  const pattern = Array.from({ length: 9 }, () => Array(9).fill(false));
+  const mirrorSum = Math.floor(Math.random() * 3);
+  const b0 = Math.floor(Math.random() * 3);
+  const stackOffsets = [b0, (mirrorSum * 2) % 3, (mirrorSum - b0 + 3) % 3];
+  const rowOffsets = Array(9);
+  const complement = (2 - mirrorSum + 3) % 3;
+  const topBand = shuffled([0, 1, 2]);
+
+  for (let row = 0; row < 3; row++) {
+    rowOffsets[row] = topBand[row];
+    rowOffsets[8 - row] = (complement - topBand[row] + 3) % 3;
+  }
+
+  const centreOffset = ((complement * 2) % 3 + 3) % 3;
+  const middleChoices = shuffled([0, 1, 2].filter((value) => value !== centreOffset));
+  rowOffsets[3] = middleChoices[0];
+  rowOffsets[4] = centreOffset;
+  rowOffsets[5] = middleChoices[1];
+
+  for (let row = 0; row < 9; row++) {
+    for (let stack = 0; stack < 3; stack++) {
+      const localColumn = (rowOffsets[row] + stackOffsets[stack]) % 3;
+      pattern[row][stack * 3 + localColumn] = true;
+    }
+  }
+  return pattern;
+}
+
 function render(pattern) {
   grid.replaceChildren();
   pattern.flat().forEach((shaded, index) => {
@@ -45,11 +78,15 @@ function render(pattern) {
 }
 
 function generate() {
-  render(makePattern());
-  status.textContent = 'New arrangement generated — 27 shaded cells.';
+  const isSymmetric = symmetry.checked;
+  render(isSymmetric ? makeSymmetricPattern() : makePattern());
+  status.textContent = isSymmetric
+    ? 'New rotationally symmetric arrangement generated — 27 shaded cells.'
+    : 'New arrangement generated — 27 shaded cells.';
 }
 
 button.addEventListener('click', generate);
+symmetry.addEventListener('change', generate);
 window.addEventListener('keydown', (event) => {
   if (event.key.toLowerCase() === 'g' && !/input|textarea|select/i.test(document.activeElement.tagName)) generate();
 });
