@@ -29,7 +29,7 @@ export async function copyGridImage(pattern, values, givens) {
     context.beginPath(); context.moveTo(inset + i * cellSize, inset); context.lineTo(inset + i * cellSize, inset + gridSize); context.stroke();
     context.beginPath(); context.moveTo(inset, inset + i * cellSize); context.lineTo(inset + gridSize, inset + i * cellSize); context.stroke();
   }
-  context.font = '600 52px Georgia'; context.textAlign = 'center'; context.textBaseline = 'middle';
+  context.font = '600 52px "Times New Roman"'; context.textAlign = 'center'; context.textBaseline = 'middle';
   values.forEach((row, r) => row.forEach((value, c) => {if (value && !pattern[r][c]) { context.fillStyle = givens[r][c] ? '#273b43' : '#267491'; context.fillText(String(value), inset + (c + 0.5) * cellSize, inset + (r + 0.5) * cellSize); }}));
   const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/png'));
   if (!blob) throw new Error('Could not create a grid image.');

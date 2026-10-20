@@ -5,7 +5,7 @@
 .string-input { display:block; margin:25px 0 8px; font-weight:700; font-size:13px; }
 #puzzle-string { display:block; width:100%; resize:vertical; padding:12px; border:1px solid #cfc7bb; border-radius:4px; color:var(--ink); background:#fffdf8; font:12px/1.6 'DM Mono', monospace; overflow-wrap:anywhere; }
 .entry-layout { display:grid; grid-template-columns:minmax(0, 420px) minmax(150px, 1fr); gap:22px; align-items:start; margin-top:24px; }
-.entry-grid .entry-cell { width:100%; height:100%; min-width:0; min-height:0; padding:0; border:0; border-right:1px solid #9aa7a7; border-bottom:1px solid #9aa7a7; border-radius:0; outline-offset:-3px; background:#fffdf8; text-align:center; color:var(--ink); font:600 clamp(14px, 3vw, 27px) Fraunces, Georgia, serif; aspect-ratio:1; }
+.entry-grid .entry-cell { width:100%; height:100%; min-width:0; min-height:0; padding:0; border:0; border-right:1px solid #9aa7a7; border-bottom:1px solid #9aa7a7; border-radius:0; outline-offset:-3px; background:#fffdf8; text-align:center; color:var(--ink); font:600 clamp(14px, 3vw, 27px) "Times New Roman", Times, serif; aspect-ratio:1; }
 .entry-grid .entry-cell.shaded { background:var(--shade); color:transparent; }
 .entry-grid .entry-cell.box-right { border-right:2px solid var(--line); }
 .entry-grid .entry-cell.box-bottom { border-bottom:2px solid var(--line); }
