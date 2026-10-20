@@ -1,5 +1,6 @@
 import {createState} from '../techniques.js';
 import {mountWalkthrough} from '../walkthrough.js';
+import {ratePuzzle, formatRating} from '../rating.js';
 
 export function parseString(text) {
   const code = text.replace(/\s/g, '');
@@ -109,6 +110,10 @@ if (typeof document !== 'undefined') {
       try {
         const solutions = findSolutions(puzzle.pattern, puzzle.dug);
         if (!solutions.length) {status.textContent = 'This puzzle has no solution.'; return;}
+        const rating = document.createElement('p'); rating.className = 'verify-rating';
+        try {rating.textContent = `Difficulty score: ${formatRating(ratePuzzle(puzzle.pattern, puzzle.dug))}${solutions.length > 1 ? ' — one solution path; puzzle is not unique' : ''}.`;}
+        catch {rating.textContent = 'Difficulty score unavailable.';}
+        results.append(rating);
         results.append(card('Puzzle', puzzle.pattern, puzzle.dug, puzzle.dug));
         if (solutions.length === 1) {
           status.textContent = 'This puzzle has exactly one solution.';

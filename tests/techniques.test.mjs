@@ -5,6 +5,7 @@ import vm from 'node:vm';
 import {createState, nextStep, applyStep, solveLogically, findStepByName, TECHNIQUES, techniqueScore} from '../src/techniques.ts';
 import {makeWalkthrough, backtrack, sortTechniqueGroups} from '../dist/walkthrough.js';
 import {TECHNIQUES as browserTechniques} from '../dist/techniques.js';
+import {ratePuzzle, formatRating} from '../dist/rating.js';
 
 // Use the existing independent generator and solution counter as the oracle.
 const source = fs.readFileSync(new URL('../dist/app.js', import.meta.url), 'utf8').split("button.addEventListener('click'")[0];
@@ -63,10 +64,21 @@ test('walkthrough starts with givens and reaches the generated solution', () => 
   for (const symmetric of [false, true]) for (let trial = 0; trial < 4; trial++) {
     const {pattern, givens, solution} = puzzle(symmetric);
     const steps = makeWalkthrough({pattern, dug: givens, values: solution});
+    assert.equal(ratePuzzle(pattern, givens).score, steps.slice(1).reduce((sum, {step}) => sum + techniqueScore(step.technique), 0));
     assert.deepEqual(steps[0].values, Array.from(givens.flat(), value => value ?? 0));
     assert.deepEqual(steps.at(-1).values, Array.from(solution.flat(), value => value ?? 0));
     for (const {step} of steps.slice(1)) assert.ok(step.placements.length || step.eliminations.length);
   }
+});
+
+test('difficulty scoring handles completed and non-unique puzzles', () => {
+  const {pattern, solution} = puzzle(false);
+  assert.deepEqual(ratePuzzle(pattern, solution), {score: 0, steps: 0, backtrackingSteps: 0});
+  const empty = Array.from({length:9}, () => Array(9).fill(null));
+  const rating = ratePuzzle(pattern, empty);
+  assert.ok(rating.backtrackingSteps > 0);
+  assert.ok(rating.score >= rating.backtrackingSteps * 10000);
+  assert.match(formatRating(rating), /backtracking/);
 });
 
 test('catalogue, solver priority and walkthrough table use the same ordering', () => {

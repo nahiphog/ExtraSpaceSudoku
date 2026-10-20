@@ -116,14 +116,21 @@ export function mountWalkthrough(container, puzzle, {heading = 'Solution walkthr
     row.append(label, score, links); tbody.append(row);
   }
   table.append(thead, tbody); breakdown.append(breakdownHeading, table); layout.append(boardArea, breakdown); container.append(title, intro, layout); update();
+  return steps;
 }
 
 if (typeof document !== 'undefined' && document.querySelector('#walkthrough') && typeof window.getCurrentPuzzle === 'function') {
   const container = document.querySelector('#walkthrough');
   const show = (puzzle) => {
     if (!puzzle) return;
-    try { mountWalkthrough(container, puzzle); }
-    catch (error) { container.replaceChildren(); const heading = document.createElement('h2'); heading.id = 'walkthrough-title'; heading.textContent = 'Solution walkthrough'; const message = document.createElement('p'); message.textContent = `Walkthrough unavailable: ${error.message}`; container.append(heading, message); }
+    const rating = document.querySelector('#difficulty');
+    try {
+      const steps = mountWalkthrough(container, puzzle);
+      const score = steps.slice(1).reduce((total, {step}) => total + techniqueScore(step.technique), 0);
+      const searches = steps.filter(({step}) => step.technique === 'Backtracking / Brute force').length;
+      if (rating) rating.textContent = `${score.toLocaleString()}${searches ? ' (backtracking)' : ''}`;
+    }
+    catch (error) { if (rating) rating.textContent = 'unavailable'; container.replaceChildren(); const heading = document.createElement('h2'); heading.id = 'walkthrough-title'; heading.textContent = 'Solution walkthrough'; const message = document.createElement('p'); message.textContent = `Walkthrough unavailable: ${error.message}`; container.append(heading, message); }
   };
   window.addEventListener('puzzle-generated', event => show(event.detail));
   show(window.getCurrentPuzzle());

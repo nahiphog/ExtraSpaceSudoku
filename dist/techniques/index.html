@@ -17,7 +17,7 @@
     <p class="eyebrow">Solver library</p>
     <h1>Techniques</h1>
     <p class="techniques-intro">The walkthrough searches these implemented techniques from the lowest score upward. Each row, column and box uses only its six unshaded cells. If no logical technique applies, backtracking is the last resort.</p>
-    <p class="techniques-note">Scores are per-step ordering weights based on the reference solver, not calibrated difficulty ratings for Extra Space Sudoku. More techniques are still to be implemented.</p>
+    <p class="techniques-note">A puzzle's difficulty score is the sum of its walkthrough step scores; each backtracking step adds 10,000. These weights are based on the reference solver, not calibrated difficulty ratings for Extra Space Sudoku. More techniques are still to be implemented.</p>
     <div class="techniques-table-wrap"><table><thead><tr><th scope="col">Technique</th><th scope="col">Score</th><th scope="col">How it works</th></tr></thead><tbody id="technique-list"></tbody></table></div>
   </main>
   <script type="module" src="./techniques-page.js"></script>
