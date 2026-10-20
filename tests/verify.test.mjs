@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import vm from 'node:vm';
 import {parseString, toString, findSolutions, copyGridImage} from '../dist/verify/verify.js';
-import {makeWalkthrough, mountWalkthrough} from '../dist/walkthrough.js';
+import {makeWalkthrough, mountWalkthrough, stepVisuals} from '../dist/walkthrough.js';
 
 const source = fs.readFileSync(new URL('../dist/app.js', import.meta.url), 'utf8').split("button.addEventListener('click'")[0];
 const context = {document: {querySelector: () => ({checked: false})}, window: {}, Math};
@@ -111,13 +111,33 @@ test('reported Swordfish identifies and highlights its actual rows, columns, and
     slider.value = '9'; slider.listeners.input();
     assert.equal(board.children.length, 81);
     assert.match(frame.className, /has-fish/);
-    assert.deepEqual(arrows.children.map(arrow => [arrow.attributes['data-direction'], arrow.attributes['data-line']]), [['row','2'],['row','5'],['row','9'],['column','4'],['column','5'],['column','8']]);
+    assert.deepEqual(arrows.children.map(arrow => [arrow.attributes['data-direction'], arrow.attributes['data-line']]), [['row','1'],['row','2'],['row','3'],['row','5'],['row','9'],['column','4'],['column','5'],['column','8']]);
     assert.doesNotMatch(board.children[13].className, /walk-fish-base|walk-fish-cover/);
     assert.match(board.children[13].attributes['aria-label'], /fish candidate 1/);
     assert.match(board.children[4].className, /walk-affected/);
-    assert.match(area.children[2].textContent, /Red arrows: involved rows and columns/);
-    slider.value = '8'; slider.listeners.input();
+    assert.match(area.children[2].textContent, /Red arrows: rows and columns containing highlighted cells/);
+    slider.value = '0'; slider.listeners.input();
     assert.equal(arrows.children.length, 0);
     assert.doesNotMatch(frame.className, /has-fish/);
   } finally {if (oldDocument === undefined) delete globalThis.document; else globalThis.document = oldDocument;}
+});
+
+test('XY-Wing walkthrough marks the pivot, wings, target, and their lines', () => {
+  const code = '010001100100010001001100010001100010100010001010001100010001100100010001001100010003000010000000200100000000030000000001000600000000050000000002006000000020000300';
+  const puzzle = parseString(code), solutions = findSolutions(puzzle.pattern, puzzle.dug);
+  assert.equal(solutions.length, 1);
+  const steps = makeWalkthrough({...puzzle, values: solutions[0]});
+  const step = steps[24].step;
+  assert.equal(step.technique, 'XY-Wing');
+  assert.deepEqual(step.evidence, [72,77,27]);
+  assert.deepEqual(step.eliminations, [{cell:32, digit:6}]);
+  assert.deepEqual(stepVisuals(step), {supporting:[72,77,27], affected:[32], rows:[3,8], columns:[0,5]});
+  assert.match(step.explanation, /r9c1.*r9c6.*row 9.*r4c1.*column 1/);
+  assert.match(step.explanation, /r4c6.*column 6.*row 4/);
+  for (const {step: current} of steps.slice(1)) {
+    const visual = stepVisuals(current);
+    assert.ok(visual.rows.length && visual.columns.length, `${current.technique} must identify its affected lines`);
+    for (const change of [...current.placements, ...current.eliminations]) assert.ok(visual.affected.includes(change.cell));
+    if (current.technique !== 'Backtracking / Brute force') assert.ok(visual.supporting.length, `${current.technique} must identify supporting cells`);
+  }
 });

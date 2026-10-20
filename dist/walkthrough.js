@@ -7,6 +7,22 @@ export function sortTechniqueGroups(groups) {
   return [...groups].sort(([a], [b]) => techniqueScore(a) - techniqueScore(b) || order.get(a) - order.get(b));
 }
 
+// Arrows identify every row and column containing supporting or affected
+// cells; fish also include all of their base and cover lines.
+export function stepVisuals(step) {
+  const supporting = [...new Set(step.evidence ?? [])];
+  const affected = [...new Set([...step.placements, ...step.eliminations].map(change => change.cell))];
+  const relevant = [...new Set([...supporting, ...affected])];
+  const rows = new Set(relevant.map(cell => Math.floor(cell / 9)));
+  const columns = new Set(relevant.map(cell => cell % 9));
+  if (step.fish) {
+    const rowLines = step.fish.baseDirection === 'row' ? step.fish.bases : step.fish.covers;
+    const columnLines = step.fish.baseDirection === 'column' ? step.fish.bases : step.fish.covers;
+    rowLines.forEach(line => rows.add(line)); columnLines.forEach(line => columns.add(line));
+  }
+  return {supporting, affected, rows: [...rows].sort((a,b) => a-b), columns: [...columns].sort((a,b) => a-b)};
+}
+
 // Search the current candidate state only when every logical finder stalls.
 export function backtrack(state) {
   const values = [...state.values];
@@ -72,12 +88,11 @@ export function mountWalkthrough(container, puzzle, {heading = 'Solution walkthr
   const buttons = [];
   const update = () => {
     const {values, candidates, step} = steps[current];
+    const visual = stepVisuals(step);
     board.replaceChildren();
     arrows.replaceChildren();
-    boardFrame.className = `walk-grid-frame${step.fish ? ' has-fish' : ''}`;
-    if (step.fish) {
-      const rowLines = step.fish.baseDirection === 'row' ? step.fish.bases : step.fish.covers;
-      const columnLines = step.fish.baseDirection === 'column' ? step.fish.bases : step.fish.covers;
+    boardFrame.className = `walk-grid-frame${visual.rows.length || visual.columns.length ? ' has-fish' : ''}`;
+    if (visual.rows.length || visual.columns.length) {
       const addArrow = (direction, line) => {
         const center = 7 + (line + 0.5) * 93 / 9;
         const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
@@ -86,8 +101,8 @@ export function mountWalkthrough(container, puzzle, {heading = 'Solution walkthr
           : `M ${center} 1 L ${center} 5.8 M ${center - 1.5} 3.9 L ${center} 5.8 L ${center + 1.5} 3.9`;
         path.setAttribute('d', shape); path.setAttribute('data-direction', direction); path.setAttribute('data-line', String(line + 1)); arrows.append(path);
       };
-      rowLines.forEach(line => addArrow('row', line));
-      columnLines.forEach(line => addArrow('column', line));
+      visual.rows.forEach(line => addArrow('row', line));
+      visual.columns.forEach(line => addArrow('column', line));
     }
     values.forEach((value, i) => {
       const r = Math.floor(i / 9), c = i % 9, cell = document.createElement('div');
@@ -97,9 +112,10 @@ export function mountWalkthrough(container, puzzle, {heading = 'Solution walkthr
       const isBase = fish && fish.bases.includes(fish.baseDirection === 'row' ? r : c);
       const isCover = fish && fish.covers.includes(fish.baseDirection === 'row' ? c : r);
       const isWitness = fish && fish.witnesses.includes(i);
-      cell.className = `cell${puzzle.pattern[r][c] ? ' shaded' : ''}${c % 3 === 2 ? ' box-right' : ''}${r % 3 === 2 ? ' box-bottom' : ''}${placed ? ' walk-placed' : ''}${removed.length ? ' walk-affected' : ''}${value && !givens[i] ? ' walk-solved' : ''}`;
+      const supporting = visual.supporting.includes(i);
+      cell.className = `cell${puzzle.pattern[r][c] ? ' shaded' : ''}${c % 3 === 2 ? ' box-right' : ''}${r % 3 === 2 ? ' box-bottom' : ''}${supporting ? ' walk-evidence' : ''}${placed ? ' walk-placed' : ''}${removed.length ? ' walk-affected' : ''}${value && !givens[i] ? ' walk-solved' : ''}`;
       cell.setAttribute('role', 'gridcell');
-      cell.setAttribute('aria-label', `${position(i)}: ${puzzle.pattern[r][c] ? 'shaded' : value ? String(value) : `candidates ${[1,2,3,4,5,6].filter(d => candidates[i] & (1 << (d-1))).join(', ')}`}${isBase ? ', fish base line' : ''}${isCover ? ', fish cover line' : ''}${isWitness ? `, fish candidate ${fish.digit}` : ''}${removed.length ? `, removed ${removed.map(change => change.digit).join(', ')}` : ''}`);
+      cell.setAttribute('aria-label', `${position(i)}: ${puzzle.pattern[r][c] ? 'shaded' : value ? String(value) : `candidates ${[1,2,3,4,5,6].filter(d => candidates[i] & (1 << (d-1))).join(', ')}`}${supporting ? ', supporting cell' : ''}${placed ? ', placed digit' : ''}${isBase ? ', fish base line' : ''}${isCover ? ', fish cover line' : ''}${isWitness ? `, fish candidate ${fish.digit}` : ''}${removed.length ? `, removed ${removed.map(change => change.digit).join(', ')}` : ''}`);
       if (value) cell.textContent = String(value);
       else if (!puzzle.pattern[r][c]) {
         const marks = document.createElement('div'); marks.className = 'walk-candidates';
@@ -118,7 +134,7 @@ export function mountWalkthrough(container, puzzle, {heading = 'Solution walkthr
     const placements = step.placements.map(({cell, digit}) => `Place ${digit} at ${position(cell)}.`).join(' ');
     const removals = step.eliminations.map(({cell, digit}) => `${digit} from ${position(cell)}`).join(', ');
     description.textContent = `${step.technique}: ${step.explanation}${placements ? ` ${placements}` : ''}${removals ? ` Remove ${removals}.` : ''}`;
-    patternLegend.textContent = step.fish ? 'Red arrows: involved rows and columns · amber candidates: pattern · red strike-through: removed candidate' : '';
+    patternLegend.textContent = visual.rows.length || visual.columns.length ? 'Red arrows: rows and columns containing highlighted cells · pale amber: supporting cells · green: placement · orange and red strike-through: elimination' : '';
     counter.textContent = `Step ${current} of ${steps.length - 1}`;
     slider.value = String(current);
     buttons[0].disabled = buttons[1].disabled = current === 0;

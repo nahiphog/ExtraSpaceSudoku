@@ -38,6 +38,7 @@ footer { width:min(1120px, calc(100% - 48px)); margin:0 auto; padding:18px 0 25p
 .walkthrough-board-area { min-width:0; }
 .walkthrough-grid { width:100%; }
 .walkthrough-grid .cell { font-size:clamp(14px, 3vw, 28px); }
+.walkthrough-grid .walk-evidence { background:#fff3c9; }
 .walkthrough-grid .walk-placed { background:#d8ead8; }
 .walkthrough-grid .walk-affected { background:#fff0dc; }
 .walkthrough-grid .walk-solved { color:#267491; }

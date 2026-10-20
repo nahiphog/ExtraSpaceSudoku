@@ -3,7 +3,7 @@ export type Grid = (number | null)[][];
 export type Pattern = boolean[][];
 export type Change = { cell: number; digit: number };
 export type FishPattern = { digit: number; baseDirection: 'row' | 'column'; bases: number[]; covers: number[]; witnesses: number[] };
-export type Step = { technique: string; placements: Change[]; eliminations: Change[]; explanation: string; fish?: FishPattern };
+export type Step = { technique: string; placements: Change[]; eliminations: Change[]; explanation: string; fish?: FishPattern; evidence?: number[] };
 export type State = { pattern: boolean[]; values: number[]; candidates: number[]; units: number[][]; peers: number[][] };
 
 // Relative per-step scores follow the reference catalogue's HoDoKu-style
@@ -32,6 +32,8 @@ const ALL = 0b111111;
 const bit = (digit: number) => 1 << (digit - 1);
 const digits = (mask: number) => [1, 2, 3, 4, 5, 6].filter(d => mask & bit(d));
 const name = (cell: number) => `r${Math.floor(cell / 9) + 1}c${cell % 9 + 1}`;
+const unitName = (index: number) => index < 9 ? `row ${index + 1}` : index < 18 ? `column ${index - 8}` : `box ${index - 17}`;
+const sharedUnits = (s: State, a: number, b: number) => s.units.flatMap((unit, index) => unit.includes(a) && unit.includes(b) ? [unitName(index)] : []).join(' and ');
 const unitsFor = (pattern: boolean[]): number[][] => {
   const units: number[][] = [];
   for (let r = 0; r < 9; r++) units.push(Array.from({length: 9}, (_, c) => r * 9 + c).filter(i => !pattern[i]));
@@ -67,25 +69,25 @@ function elimination(technique: string, changes: Change[], explanation: string):
 }
 function singles(s: State, kind: string): Step | null {
   if (kind === 'Full House') {
-  for (const unit of s.units) {
+  for (const [unitIndex, unit] of s.units.entries()) {
     const empty = unit.filter(i => !s.values[i]);
     if (empty.length === 1 && digits(s.candidates[empty[0]]).length === 1) {
       const cell = empty[0], digit = digits(s.candidates[cell])[0];
-      return {technique: 'Full House', placements: [{cell, digit}], eliminations: [], explanation: `${name(cell)} is the only empty cell in its unit.`};
+      return {technique: 'Full House', placements: [{cell, digit}], eliminations: [], evidence: [...unit], explanation: `${name(cell)} is the only empty playable cell in ${unitName(unitIndex)}.`};
     }
   }
   }
   if (kind === 'Naked Single') {
   for (let cell = 0; cell < 81; cell++) {
     const options = digits(s.candidates[cell]);
-    if (options.length === 1) return {technique: 'Naked Single', placements: [{cell, digit: options[0]}], eliminations: [], explanation: `${name(cell)} has only one candidate.`};
+    if (options.length === 1) return {technique: 'Naked Single', placements: [{cell, digit: options[0]}], eliminations: [], evidence: [cell, ...s.peers[cell].filter(peer => s.values[peer] !== 0)], explanation: `${name(cell)} has only one candidate. Highlighted filled peers show the existing digits in its row, column and box; earlier candidate eliminations may also contribute.`};
   }
   }
   if (kind === 'Hidden Single') {
-  for (const unit of s.units) for (let digit = 1; digit <= 6; digit++) {
+  for (const [unitIndex, unit] of s.units.entries()) for (let digit = 1; digit <= 6; digit++) {
     if (unit.some(i => s.values[i] === digit)) continue;
     const cells = unit.filter(i => s.candidates[i] & bit(digit));
-    if (cells.length === 1) return {technique: 'Hidden Single', placements: [{cell: cells[0], digit}], eliminations: [], explanation: `${digit} has only one position in a unit.`};
+    if (cells.length === 1) return {technique: 'Hidden Single', placements: [{cell: cells[0], digit}], eliminations: [], evidence: [...unit], explanation: `${digit} has only one available position in ${unitName(unitIndex)}.`};
   }
   }
   return null;
@@ -99,22 +101,22 @@ function intersections(s: State, kind: string): Step | null {
       const candidates = s.units[from].filter(i => s.candidates[i] & bit(digit));
       if (!candidates.length || !candidates.every(i => intersection.includes(i))) continue;
       const changes = s.units[to].filter(i => !intersection.includes(i) && (s.candidates[i] & bit(digit))).map(cell => ({cell, digit}));
-      const step = elimination(technique, changes, `${digit} is confined to the intersection of a line and box.`);
-      if (step) return step;
+      const step = elimination(technique, changes, `In ${unitName(from)}, digit ${digit} is confined to ${candidates.map(name).join(', ')}, which also belong to ${unitName(to)}. It can therefore be removed from the rest of ${unitName(to)}.`);
+      if (step) {step.evidence = [...new Set([...s.units[from], ...s.units[to]])]; return step;}
     }
   }
   return null;
 }
 function subsets(s: State, size: number, kind: 'Naked' | 'Hidden'): Step | null {
   const label = ['', '', 'Pair', 'Triple', 'Quadruple'][size];
-  for (const unit of s.units) {
+  for (const [unitIndex, unit] of s.units.entries()) {
     const open = unit.filter(i => s.candidates[i]);
     if (kind === 'Naked') for (const cells of combinations(open, size)) {
       const mask = cells.reduce((m, i) => m | s.candidates[i], 0);
       if (digits(mask).length !== size) continue;
       const changes = open.filter(i => !cells.includes(i)).flatMap(cell => digits(s.candidates[cell] & mask).map(digit => ({cell, digit})));
-      const step = elimination(`Naked ${label}`, changes, `${cells.map(name).join(', ')} share ${size} candidates in one unit.`);
-      if (step) return step;
+      const step = elimination(`Naked ${label}`, changes, `${cells.map(name).join(', ')} contain only ${digits(mask).join(', ')} in ${unitName(unitIndex)}, so these digits can be removed from the other cells in that unit.`);
+      if (step) {step.evidence = [...unit]; return step;}
     }
     const missing = [1,2,3,4,5,6].filter(d => !unit.some(i => s.values[i] === d));
     if (kind === 'Hidden') for (const selected of combinations(missing, size)) {
@@ -122,8 +124,8 @@ function subsets(s: State, size: number, kind: 'Naked' | 'Hidden'): Step | null 
       const cells = open.filter(i => s.candidates[i] & mask);
       if (cells.length !== size || selected.some(d => !cells.some(i => s.candidates[i] & bit(d)))) continue;
       const changes = cells.flatMap(cell => digits(s.candidates[cell] & ~mask).map(digit => ({cell, digit})));
-      const step = elimination(`Hidden ${label}`, changes, `${selected.join(', ')} are confined to ${size} cells in one unit.`);
-      if (step) return step;
+      const step = elimination(`Hidden ${label}`, changes, `In ${unitName(unitIndex)}, digits ${selected.join(', ')} are confined to ${cells.map(name).join(', ')}, so other candidates can be removed from these cells.`);
+      if (step) {step.evidence = [...unit]; return step;}
     }
   }
   return null;
@@ -143,7 +145,7 @@ function fish(s: State, size: number): Step | null {
       const positions = chosen.map(base => `${baseName} ${base + 1}: ${witnesses.filter(i => (transpose ? i % 9 : Math.floor(i / 9)) === base).map(name).join(', ')}`).join('; ');
       const explanation = `For digit ${digit}, ${baseName}s ${chosen.map(i => i + 1).join(', ')} have candidates only in ${coverName}s ${covers.map(i => i + 1).join(', ')}. Candidate positions: ${positions}. Each base ${baseName} must contain ${digit} once, so these ${size} digits occupy all ${size} cover ${coverName}s. Therefore ${digit} can be removed from other cells in those ${coverName}s.`;
       const step = elimination(['', '', 'X-Wing', 'Swordfish', 'Jellyfish'][size], changes, explanation);
-      if (step) { step.fish = {digit, baseDirection: baseName, bases: [...chosen], covers, witnesses}; return step; }
+      if (step) { step.fish = {digit, baseDirection: baseName, bases: [...chosen], covers, witnesses}; step.evidence = [...witnesses]; return step; }
     }
   }
   return null;
@@ -160,8 +162,9 @@ function xyWing(s: State): Step | null {
       if (aPivot.length !== 1 || bPivot.length !== 1 || aPivot[0] === bPivot[0] || common.length !== 1) continue;
       const digit = common[0];
       const changes = s.peers[a].filter(i => s.peers[b].includes(i) && i !== pivot && (s.candidates[i] & bit(digit))).map(cell => ({cell, digit}));
-      const step = elimination('XY-Wing', changes, `${name(pivot)} links wings ${name(a)} and ${name(b)}, forcing ${digit} into at least one wing.`);
-      if (step) return step;
+      const links = changes.map(({cell}) => `${name(cell)} sees ${name(a)} via ${sharedUnits(s, cell, a)} and ${name(b)} via ${sharedUnits(s, cell, b)}`).join('; ');
+      const step = elimination('XY-Wing', changes, `Pivot ${name(pivot)} has candidates ${pivotDigits.join('/')} and sees wing ${name(a)} (${digits(s.candidates[a]).join('/')}) via ${sharedUnits(s, pivot, a)} and wing ${name(b)} (${digits(s.candidates[b]).join('/')}) via ${sharedUnits(s, pivot, b)}. Whichever pivot digit is chosen, one wing must contain ${digit}. ${links}; therefore ${digit} can be removed from ${changes.map(change => name(change.cell)).join(', ')}.`);
+      if (step) {step.evidence = [pivot, a, b]; return step;}
     }
   }
   return null;
