@@ -2,7 +2,8 @@
 export type Grid = (number | null)[][];
 export type Pattern = boolean[][];
 export type Change = { cell: number; digit: number };
-export type Step = { technique: string; placements: Change[]; eliminations: Change[]; explanation: string };
+export type FishPattern = { digit: number; baseDirection: 'row' | 'column'; bases: number[]; covers: number[]; witnesses: number[] };
+export type Step = { technique: string; placements: Change[]; eliminations: Change[]; explanation: string; fish?: FishPattern };
 export type State = { pattern: boolean[]; values: number[]; candidates: number[]; units: number[][]; peers: number[][] };
 
 // Relative per-step scores follow the reference catalogue's HoDoKu-style
@@ -134,11 +135,15 @@ function fish(s: State, size: number): Step | null {
       return cells.length >= 2 && cells.length <= size;
     });
     for (const chosen of combinations(bases, size)) {
-      const covers = [...new Set(chosen.flatMap(base => s.units[(transpose ? 9 : 0) + base].filter(i => s.candidates[i] & bit(digit)).map(i => transpose ? Math.floor(i / 9) : i % 9)))];
+      const witnesses = chosen.flatMap(base => s.units[(transpose ? 9 : 0) + base].filter(i => s.candidates[i] & bit(digit)));
+      const covers = [...new Set(witnesses.map(i => transpose ? Math.floor(i / 9) : i % 9))].sort((a, b) => a - b);
       if (covers.length !== size) continue;
       const changes = covers.flatMap(cover => s.units[(transpose ? 0 : 9) + cover].filter(i => !chosen.includes(transpose ? i % 9 : Math.floor(i / 9)) && (s.candidates[i] & bit(digit))).map(cell => ({cell, digit})));
-      const step = elimination(['', '', 'X-Wing', 'Swordfish', 'Jellyfish'][size], changes, `${digit} is restricted to ${size} crossing lines.`);
-      if (step) return step;
+      const baseName = transpose ? 'column' : 'row', coverName = transpose ? 'row' : 'column';
+      const positions = chosen.map(base => `${baseName} ${base + 1}: ${witnesses.filter(i => (transpose ? i % 9 : Math.floor(i / 9)) === base).map(name).join(', ')}`).join('; ');
+      const explanation = `For digit ${digit}, ${baseName}s ${chosen.map(i => i + 1).join(', ')} have candidates only in ${coverName}s ${covers.map(i => i + 1).join(', ')}. Candidate positions: ${positions}. Each base ${baseName} must contain ${digit} once, so these ${size} digits occupy all ${size} cover ${coverName}s. Therefore ${digit} can be removed from other cells in those ${coverName}s.`;
+      const step = elimination(['', '', 'X-Wing', 'Swordfish', 'Jellyfish'][size], changes, explanation);
+      if (step) { step.fish = {digit, baseDirection: baseName, bases: [...chosen], covers, witnesses}; return step; }
     }
   }
   return null;

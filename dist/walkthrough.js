@@ -62,6 +62,7 @@ export function mountWalkthrough(container, puzzle, {heading = 'Solution walkthr
   const boardArea = document.createElement('div'); boardArea.className = 'walkthrough-board-area';
   const board = document.createElement('div'); board.className = 'sudoku-grid walkthrough-grid'; board.setAttribute('role', 'grid'); board.setAttribute('aria-label', 'Walkthrough grid');
   const description = document.createElement('p'); description.className = 'walkthrough-description'; description.setAttribute('aria-live', 'polite');
+  const patternLegend = document.createElement('p'); patternLegend.className = 'walkthrough-pattern-legend';
   const counter = document.createElement('span'); counter.className = 'walkthrough-counter';
   const slider = document.createElement('input'); slider.type = 'range'; slider.min = '0'; slider.max = String(steps.length - 1); slider.value = '0'; slider.setAttribute('aria-label', 'Walkthrough step');
   const controls = document.createElement('div'); controls.className = 'walkthrough-controls';
@@ -73,9 +74,13 @@ export function mountWalkthrough(container, puzzle, {heading = 'Solution walkthr
       const r = Math.floor(i / 9), c = i % 9, cell = document.createElement('div');
       const placed = step.placements.some(change => change.cell === i);
       const removed = step.eliminations.filter(change => change.cell === i);
-      cell.className = `cell${puzzle.pattern[r][c] ? ' shaded' : ''}${c % 3 === 2 ? ' box-right' : ''}${r % 3 === 2 ? ' box-bottom' : ''}${placed ? ' walk-placed' : ''}${removed.length ? ' walk-affected' : ''}${value && !givens[i] ? ' walk-solved' : ''}`;
+      const fish = step.fish;
+      const isBase = fish && fish.bases.includes(fish.baseDirection === 'row' ? r : c);
+      const isCover = fish && fish.covers.includes(fish.baseDirection === 'row' ? c : r);
+      const isWitness = fish && fish.witnesses.includes(i);
+      cell.className = `cell${puzzle.pattern[r][c] ? ' shaded' : ''}${c % 3 === 2 ? ' box-right' : ''}${r % 3 === 2 ? ' box-bottom' : ''}${placed ? ' walk-placed' : ''}${removed.length ? ' walk-affected' : ''}${value && !givens[i] ? ' walk-solved' : ''}${isBase ? ` walk-fish-base-${fish.baseDirection}` : ''}${isCover ? ` walk-fish-cover-${fish.baseDirection === 'row' ? 'column' : 'row'}` : ''}`;
       cell.setAttribute('role', 'gridcell');
-      cell.setAttribute('aria-label', `${position(i)}: ${puzzle.pattern[r][c] ? 'shaded' : value ? String(value) : `candidates ${[1,2,3,4,5,6].filter(d => candidates[i] & (1 << (d-1))).join(', ')}`}`);
+      cell.setAttribute('aria-label', `${position(i)}: ${puzzle.pattern[r][c] ? 'shaded' : value ? String(value) : `candidates ${[1,2,3,4,5,6].filter(d => candidates[i] & (1 << (d-1))).join(', ')}`}${isBase ? ', fish base line' : ''}${isCover ? ', fish cover line' : ''}${isWitness ? `, fish candidate ${fish.digit}` : ''}${removed.length ? `, removed ${removed.map(change => change.digit).join(', ')}` : ''}`);
       if (value) cell.textContent = String(value);
       else if (!puzzle.pattern[r][c]) {
         const marks = document.createElement('div'); marks.className = 'walk-candidates';
@@ -84,6 +89,7 @@ export function mountWalkthrough(container, puzzle, {heading = 'Solution walkthr
           const eliminated = removed.some(change => change.digit === digit);
           if (candidates[i] & (1 << (digit - 1)) || eliminated) mark.textContent = String(digit);
           if (eliminated) mark.className = 'walk-removed';
+          else if (isWitness && digit === fish.digit) mark.className = 'walk-fish-candidate';
           marks.append(mark);
         }
         cell.append(marks);
@@ -93,6 +99,7 @@ export function mountWalkthrough(container, puzzle, {heading = 'Solution walkthr
     const placements = step.placements.map(({cell, digit}) => `Place ${digit} at ${position(cell)}.`).join(' ');
     const removals = step.eliminations.map(({cell, digit}) => `${digit} from ${position(cell)}`).join(', ');
     description.textContent = `${step.technique}: ${step.explanation}${placements ? ` ${placements}` : ''}${removals ? ` Remove ${removals}.` : ''}`;
+    patternLegend.textContent = step.fish ? 'Blue bands: base lines · teal bands: cover lines · blue candidate: pattern · red strike-through: removed candidate' : '';
     counter.textContent = `Step ${current} of ${steps.length - 1}`;
     slider.value = String(current);
     buttons[0].disabled = buttons[1].disabled = current === 0;
@@ -101,7 +108,7 @@ export function mountWalkthrough(container, puzzle, {heading = 'Solution walkthr
   const actions = [['First', () => 0], ['Previous', () => Math.max(0, current - 1)], ['Next', () => Math.min(steps.length - 1, current + 1)], ['Last', () => steps.length - 1]];
   actions.forEach(([label, select]) => { const button = document.createElement('button'); button.type = 'button'; button.textContent = label; button.addEventListener('click', () => {current = select(); update();}); buttons.push(button); controls.append(button); });
   slider.addEventListener('input', () => {current = Number(slider.value); update();});
-  boardArea.append(board, description, slider, controls, counter);
+  boardArea.append(board, description, patternLegend, slider, controls, counter);
   const breakdown = document.createElement('div'); breakdown.className = 'walkthrough-breakdown';
   const breakdownHeading = document.createElement('h3'); breakdownHeading.textContent = 'Techniques used';
   const table = document.createElement('table');

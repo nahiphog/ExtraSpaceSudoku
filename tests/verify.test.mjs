@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import vm from 'node:vm';
 import {parseString, toString, findSolutions, copyGridImage} from '../dist/verify/verify.js';
-import {makeWalkthrough} from '../dist/walkthrough.js';
+import {makeWalkthrough, mountWalkthrough} from '../dist/walkthrough.js';
 
 const source = fs.readFileSync(new URL('../dist/app.js', import.meta.url), 'utf8').split("button.addEventListener('click'")[0];
 const context = {document: {querySelector: () => ({checked: false})}, window: {}, Math};
@@ -81,4 +81,39 @@ test('simulation trial options exactly match the reference', () => {
   const select = html.match(/<select id="trial-count">(.*?)<\/select>/)[1];
   assert.deepEqual([...select.matchAll(/<option value="(\d+)"/g)].map(match => Number(match[1])), [1,10,100,1000,10000,100000,1000000]);
   assert.match(select, /value="100000" selected/);
+});
+
+test('reported Swordfish identifies and highlights its actual rows, columns, and candidates', () => {
+  const code = '010001100100100001001010010001100100010001001100010010010010001100100010001001100000600000000005300000000406010000040000000000006300000000000000000000100200000000';
+  const puzzle = parseString(code), solutions = findSolutions(puzzle.pattern, puzzle.dug);
+  assert.equal(solutions.length, 1);
+  const steps = makeWalkthrough({...puzzle, values: solutions[0]});
+  const step = steps[9].step;
+  assert.equal(step.technique, 'Swordfish');
+  assert.deepEqual(step.fish, {digit: 1, baseDirection: 'row', bases: [1,4,8], covers: [3,4,7], witnesses: [13,16,39,40,43,75,76]});
+  assert.match(step.explanation, /rows 2, 5, 9.*columns 4, 5, 8/);
+  assert.match(step.explanation, /r2c5.*r5c4.*r9c5/);
+  assert.deepEqual(step.eliminations.map(({cell}) => cell).sort((a,b) => a-b), [4,7,21]);
+
+  class Element {
+    constructor(tag) {this.tag = tag; this.children = []; this.listeners = {}; this.attributes = {}; this.textContent = ''; this.className = '';}
+    append(...children) {this.children.push(...children);}
+    replaceChildren(...children) {this.children = [...children];}
+    setAttribute(key, value) {this.attributes[key] = value;}
+    addEventListener(name, handler) {this.listeners[name] = handler;}
+  }
+  const oldDocument = globalThis.document;
+  try {
+    globalThis.document = {createElement: tag => new Element(tag), createTextNode: text => ({textContent:text})};
+    const container = new Element('section');
+    mountWalkthrough(container, {...puzzle, values: solutions[0]});
+    const area = container.children[2].children[0], board = area.children[0], slider = area.children[3];
+    slider.value = '9'; slider.listeners.input();
+    assert.equal(board.children.length, 81);
+    assert.match(board.children[13].className, /walk-fish-base-row/);
+    assert.match(board.children[13].className, /walk-fish-cover-column/);
+    assert.match(board.children[13].attributes['aria-label'], /fish candidate 1/);
+    assert.match(board.children[4].className, /walk-affected/);
+    assert.match(area.children[2].textContent, /Blue bands: base lines/);
+  } finally {if (oldDocument === undefined) delete globalThis.document; else globalThis.document = oldDocument;}
 });
