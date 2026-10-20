@@ -13,6 +13,28 @@ export function toString(pattern, values) {
   return pattern.flat().map(shaded => shaded ? '1' : '0').join('') + values.flat().map(value => value ?? 0).join('');
 }
 
+export async function copyGridImage(pattern, values, givens) {
+  const canvas = document.createElement('canvas');
+  canvas.width = 900; canvas.height = 900;
+  const context = canvas.getContext('2d');
+  if (!context || !navigator.clipboard?.write || !window.ClipboardItem) throw new Error('Image clipboard access is unavailable.');
+  const cellSize = 96, inset = 18, gridSize = 9 * cellSize;
+  context.fillStyle = '#fffdf8'; context.fillRect(0, 0, 900, 900);
+  pattern.forEach((row, r) => row.forEach((shaded, c) => {
+    if (shaded) { context.fillStyle = '#9ca8ad'; context.fillRect(inset + c * cellSize, inset + r * cellSize, cellSize, cellSize); }
+  }));
+  for (let i = 0; i <= 9; i++) {
+    context.strokeStyle = i % 3 === 0 ? '#53666d' : '#9aa7a7'; context.lineWidth = i % 3 === 0 ? 4 : 1;
+    context.beginPath(); context.moveTo(inset + i * cellSize, inset); context.lineTo(inset + i * cellSize, inset + gridSize); context.stroke();
+    context.beginPath(); context.moveTo(inset, inset + i * cellSize); context.lineTo(inset + gridSize, inset + i * cellSize); context.stroke();
+  }
+  context.font = '600 52px Georgia'; context.textAlign = 'center'; context.textBaseline = 'middle';
+  values.forEach((row, r) => row.forEach((value, c) => {if (value && !pattern[r][c]) { context.fillStyle = givens[r][c] ? '#273b43' : '#267491'; context.fillText(String(value), inset + (c + 0.5) * cellSize, inset + (r + 0.5) * cellSize); }}));
+  const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/png'));
+  if (!blob) throw new Error('Could not create a grid image.');
+  await navigator.clipboard.write([new window.ClipboardItem({'image/png': blob})]);
+}
+
 export function findSolutions(pattern, dug, limit = 2) {
   const state = createState(pattern, dug), values = [...state.values], solutions = [];
   function search() {
@@ -67,7 +89,10 @@ if (typeof document !== 'undefined') {
     });
     const copy = document.createElement('button'); copy.type = 'button'; copy.className = 'result-copy'; copy.textContent = 'Copy 162-string';
     copy.addEventListener('click', async () => {try {await navigator.clipboard.writeText(toString(pattern, values)); status.textContent = `${title} copied to clipboard.`;} catch {status.textContent = 'Clipboard access was unavailable.';}});
-    section.append(heading, grid, copy); return section;
+    const image = document.createElement('button'); image.type = 'button'; image.className = 'result-copy'; image.textContent = 'Copy image';
+    image.addEventListener('click', async () => {try {await copyGridImage(pattern, values, givens); status.textContent = `${title} image copied to clipboard.`;} catch {status.textContent = 'Image clipboard access was unavailable in this browser.';}});
+    const actions = document.createElement('div'); actions.className = 'result-actions'; actions.append(copy, image);
+    section.append(heading, grid, actions); return section;
   }
   verify.addEventListener('click', () => {
     results.replaceChildren(); let puzzle;
@@ -93,6 +118,8 @@ if (typeof document !== 'undefined') {
         } else {
           status.textContent = 'This puzzle has multiple solutions. Differences are highlighted in orange.';
           results.append(card('Solution 1', puzzle.pattern, solutions[0], puzzle.dug, solutions[1]), card('Solution 2', puzzle.pattern, solutions[1], puzzle.dug, solutions[0]));
+          const walk = document.createElement('section'); walk.className = 'walkthrough-panel'; results.append(walk);
+          try {mountWalkthrough(walk, {...puzzle, values: solutions[0]}, {heading: 'Walkthrough for solution 1', allowBacktracking: false});} catch {walk.textContent = 'A verified logical walkthrough is unavailable for this puzzle.';}
         }
       } catch (error) {status.textContent = `Unable to verify: ${error.message}`;} finally {verify.disabled = false;}
     });

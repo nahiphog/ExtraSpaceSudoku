@@ -27,7 +27,7 @@ export function backtrack(state) {
 }
 
 // Logical techniques are retried after every placement, including fallback.
-export function makeWalkthrough({pattern, dug, values}) {
+export function makeWalkthrough({pattern, dug, values}, {allowBacktracking = true} = {}) {
   const state = createState(pattern, dug);
   const solution = values.flat();
   const steps = [snapshot(state, {technique: 'Candidates', placements: [], eliminations: [], explanation: 'Candidates are shown in each empty cell.'})];
@@ -36,6 +36,7 @@ export function makeWalkthrough({pattern, dug, values}) {
     if (!step) {
       const cell = state.values.findIndex((value, i) => !state.pattern[i] && !value);
       if (cell < 0) break;
+      if (!allowBacktracking) break;
       const found = backtrack(state);
       if (!found) throw new Error('Backtracking could not solve the current candidate state.');
       const digit = found[cell];
@@ -46,17 +47,17 @@ export function makeWalkthrough({pattern, dug, values}) {
     applyStep(state, step);
     steps.push(snapshot(state, step));
   }
-  if (state.values.some((value, i) => !state.pattern[i] && value !== solution[i])) throw new Error('The walkthrough did not reach the completed grid.');
+  if (state.values.some((value, i) => !state.pattern[i] && value && value !== solution[i]) || (allowBacktracking && state.values.some((value, i) => !state.pattern[i] && !value))) throw new Error('The walkthrough did not match the completed grid.');
   return steps;
 }
 
-export function mountWalkthrough(container, puzzle) {
-  const steps = makeWalkthrough(puzzle);
+export function mountWalkthrough(container, puzzle, {heading = 'Solution walkthrough', allowBacktracking = true} = {}) {
+  const steps = makeWalkthrough(puzzle, {allowBacktracking});
   const givens = puzzle.dug.flat();
   let current = 0;
   container.replaceChildren();
-  const title = document.createElement('h2'); title.id = 'walkthrough-title'; title.textContent = 'Solution walkthrough';
-  const intro = document.createElement('p'); intro.className = 'walkthrough-intro'; intro.textContent = 'Follow the deductions one step at a time. If the available techniques cannot finish, the remaining placements are marked as backtracking.';
+  const title = document.createElement('h2'); title.id = 'walkthrough-title'; title.textContent = heading;
+  const intro = document.createElement('p'); intro.className = 'walkthrough-intro'; intro.textContent = allowBacktracking ? 'Follow the deductions one step at a time. If the available techniques cannot finish, the remaining placements are marked as backtracking.' : 'This puzzle has multiple solutions. Only deductions common to all solutions are shown; the walkthrough may stop before the grid is complete.';
   const layout = document.createElement('div'); layout.className = 'walkthrough-layout';
   const boardArea = document.createElement('div'); boardArea.className = 'walkthrough-board-area';
   const board = document.createElement('div'); board.className = 'sudoku-grid walkthrough-grid'; board.setAttribute('role', 'grid'); board.setAttribute('aria-label', 'Walkthrough grid');
@@ -102,7 +103,7 @@ export function mountWalkthrough(container, puzzle) {
   slider.addEventListener('input', () => {current = Number(slider.value); update();});
   boardArea.append(board, description, slider, controls, counter);
   const breakdown = document.createElement('div'); breakdown.className = 'walkthrough-breakdown';
-  const heading = document.createElement('h3'); heading.textContent = 'Techniques used';
+  const breakdownHeading = document.createElement('h3'); breakdownHeading.textContent = 'Techniques used';
   const table = document.createElement('table');
   const header = document.createElement('tr');
   for (const label of ['Technique', 'Score', 'Steps']) {const th = document.createElement('th'); th.scope = 'col'; th.textContent = label; header.append(th);}
@@ -114,7 +115,7 @@ export function mountWalkthrough(container, puzzle) {
     numbers.forEach((number, index) => { if (index) links.append(document.createTextNode(', ')); const link = document.createElement('button'); link.type = 'button'; link.className = 'walk-step-link'; link.textContent = String(number); link.setAttribute('aria-label', `Go to step ${number}`); link.addEventListener('click', () => {current = number; update();}); links.append(link); });
     row.append(label, score, links); tbody.append(row);
   }
-  table.append(thead, tbody); breakdown.append(heading, table); layout.append(boardArea, breakdown); container.append(title, intro, layout); update();
+  table.append(thead, tbody); breakdown.append(breakdownHeading, table); layout.append(boardArea, breakdown); container.append(title, intro, layout); update();
 }
 
 if (typeof document !== 'undefined' && document.querySelector('#walkthrough') && typeof window.getCurrentPuzzle === 'function') {

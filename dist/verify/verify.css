@@ -24,5 +24,6 @@
 .verify-card .solved { color:#267491; }
 .verify-card .different { background:#ffdfb8; }
 .result-copy { margin-top:12px; }
+.result-actions { display:flex; flex-wrap:wrap; gap:8px; }
 .verify-results .walkthrough-panel { grid-column:1 / -1; width:100%; margin:0; }
 @media (max-width:600px) { .verify-shell { width:calc(100% - 32px); padding-top:34px; } .entry-layout { grid-template-columns:1fr; } .entry-grid { width:min(100%, 420px); } .verify-actions { max-width:420px; } }
