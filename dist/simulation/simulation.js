@@ -23,7 +23,26 @@ function solve(pattern, givens, limit = 1) {
   function search(cells) { if (count >= limit) return; if (!cells.length) { count++; first ??= values.map((row) => [...row]); return; } let choice = -1, options; cells.forEach((cell,index) => { const found = digitsFromMask(rowUsed[cell.r] | colUsed[cell.c] | boxUsed[cell.b]); if (!options || found.length < options.length) { choice = index; options = found; } }); if (!options.length) return; const cell = cells[choice], next = cells.filter((_, index) => index !== choice); for (const digit of options) { const flag = 1 << digit; values[cell.r][cell.c] = digit; rowUsed[cell.r] |= flag; colUsed[cell.c] |= flag; boxUsed[cell.b] |= flag; search(next); values[cell.r][cell.c] = null; rowUsed[cell.r] &= ~flag; colUsed[cell.c] &= ~flag; boxUsed[cell.b] &= ~flag; if (count >= limit) return; } }
   search(open); return { count, values: first };
 }
-function generatePuzzle(symmetric) { for (let attempt = 0; attempt < 100; attempt++) { const pattern = makePattern(symmetric), blank = Array.from({length:9}, () => Array(9).fill(null)), solution = solve(pattern, blank).values; if (!solution) continue; const dug = solution.map((row) => [...row]); for (const index of shuffled(Array.from({length:81},(_,i)=>i).filter((i)=>!pattern[Math.floor(i/9)][i%9]))) { const r = Math.floor(index/9), c = index % 9, digit = dug[r][c]; dug[r][c] = null; if (solve(pattern, dug, 2).count !== 1) dug[r][c] = digit; } return {pattern, dug}; } throw Error('Could not generate a puzzle'); }
+function generatePuzzle(symmetric) {
+  for (let attempt = 0; attempt < 100; attempt++) {
+    const pattern = makePattern(symmetric), blank = Array.from({length:9}, () => Array(9).fill(null)), solution = solve(pattern, blank).values;
+    if (!solution) continue;
+    const dug = solution.map((row) => [...row]);
+    const cells = shuffled(Array.from({length:81}, (_, i) => i).filter((i) => !pattern[Math.floor(i/9)][i%9] && (!symmetric || i < 80-i)));
+    for (const index of cells) {
+      const r = Math.floor(index/9), c = index%9, digit = dug[r][c];
+      const pairedRow = 8-r, pairedColumn = 8-c, pairedDigit = symmetric ? dug[pairedRow][pairedColumn] : null;
+      dug[r][c] = null;
+      if (symmetric) dug[pairedRow][pairedColumn] = null;
+      if (solve(pattern, dug, 2).count !== 1) {
+        dug[r][c] = digit;
+        if (symmetric) dug[pairedRow][pairedColumn] = pairedDigit;
+      }
+    }
+    return {pattern, dug};
+  }
+  throw Error('Could not generate a puzzle');
+}
 function extraString(pattern, values) { return pattern.flat().map((shaded) => shaded ? '1' : '0').join('') + values.flat().map((value) => value ?? '0').join(''); }
 function renderSample({pattern, dug}, number) { const card = document.createElement('article'), clues = dug.flat().filter(Boolean).length; card.className = 'sample-grid-card'; card.innerHTML = `<div class="sample-topline"><span>Final puzzle ${number}</span><span>${clues} clues</span></div>`; const grid = document.createElement('div'); grid.className = 'grid'; pattern.flat().forEach((shaded,index) => { const r = Math.floor(index/9), c = index % 9, cell = document.createElement('div'), empty = !shaded && !dug[r][c]; cell.className = `cell${shaded?' shaded':''}${empty?' empty':''}${c%3===2?' box-right':''}${r%3===2?' box-bottom':''}`; if (!shaded && !empty) cell.textContent = dug[r][c]; grid.append(cell); }); const copy=document.createElement('button'); copy.className='sample-copy'; copy.textContent='Copy 162-string'; copy.onclick=async()=>{await navigator.clipboard.writeText(extraString(pattern,dug));status.textContent='Puzzle copied as a 162-character ExtraSudokuSpace string.'}; card.append(grid,copy); return card; }
 let running = false, completed = 0, qualifying = 0, clueCap = 18, total = 0, duration = 0, tallies = new Map(), latest = [];

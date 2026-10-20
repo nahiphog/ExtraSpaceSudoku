@@ -204,15 +204,22 @@ function countSolutions(pattern, givens, limit = 2) {
   return solutions;
 }
 
-function digPuzzle(pattern, solution) {
+function digPuzzle(pattern, solution, symmetric = false) {
   const givens = solution.map((row) => row.map((digit) => digit));
-  const cells = shuffled(Array.from({ length: 81 }, (_, index) => index).filter((index) => !pattern[Math.floor(index / 9)][index % 9]));
+  const cells = shuffled(Array.from({ length: 81 }, (_, index) => index).filter((index) => !pattern[Math.floor(index / 9)][index % 9] && (!symmetric || index < 80 - index)));
   for (const index of cells) {
     const row = Math.floor(index / 9);
     const column = index % 9;
     const digit = givens[row][column];
+    const pairedRow = 8 - row;
+    const pairedColumn = 8 - column;
+    const pairedDigit = symmetric ? givens[pairedRow][pairedColumn] : null;
     givens[row][column] = null;
-    if (countSolutions(pattern, givens) !== 1) givens[row][column] = digit;
+    if (symmetric) givens[pairedRow][pairedColumn] = null;
+    if (countSolutions(pattern, givens) !== 1) {
+      givens[row][column] = digit;
+      if (symmetric) givens[pairedRow][pairedColumn] = pairedDigit;
+    }
   }
   return givens;
 }
@@ -236,7 +243,7 @@ function generate() {
   const started = performance.now();
   const isSymmetric = symmetry.checked;
   const { pattern, values } = makePuzzle();
-  const dug = digPuzzle(pattern, values);
+  const dug = digPuzzle(pattern, values, isSymmetric);
   currentPuzzle = { pattern, values, dug };
   const clues = dug.flat().filter((value) => value !== null).length;
   render(puzzleGrid, pattern, dug, true);

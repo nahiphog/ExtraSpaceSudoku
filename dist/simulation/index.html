@@ -22,7 +22,7 @@
         <div class="simulation-controls">
           <label>Total number of trials<select id="trial-count"><option value="1">1</option><option value="10" selected>10</option><option value="50">50</option><option value="100">100</option><option value="500">500</option></select></label>
           <label>Only display puzzles with at most<select id="given-cell-limit"><option value="4">4 clues</option><option value="5">5 clues</option><option value="6">6 clues</option><option value="7">7 clues</option><option value="8">8 clues</option><option value="9">9 clues</option><option value="10">10 clues</option><option value="11">11 clues</option><option value="12" selected>12 clues</option><option value="13">13 clues</option><option value="14">14 clues</option><option value="15">15 clues</option></select></label>
-          <label>Grid type<select id="symmetry"><option value="false" selected>Any valid pattern</option><option value="true">180° rotational symmetry</option></select></label>
+          <label>Grid type<select id="symmetry"><option value="false" selected>Any valid pattern</option><option value="true">180° rotational symmetry (paired clues)</option></select></label>
         </div>
         <div class="simulation-actions"><button id="run-simulation" type="button"><span aria-hidden="true">✦</span> Run simulation</button><button id="stop-simulation" class="secondary-button" type="button" disabled>Stop</button></div>
         <p id="simulation-status" class="status" aria-live="polite">Choose a trial count, then run the simulation.</p>
