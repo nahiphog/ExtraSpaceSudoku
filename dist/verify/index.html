@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Verify — Extra Space Sudoku</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Fraunces:opsz,wght@9..144,500;9..144,600&family=Manrope:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="../styles.css" />
+  <link rel="stylesheet" href="../simulation/simulation.css" />
+  <link rel="stylesheet" href="./verify.css" />
+</head>
+<body>
+  <nav class="site-nav" aria-label="Main navigation"><a class="site-brand" href="../index.html">Extra Space Sudoku</a><details class="nav-menu"><summary>Pages</summary><div><a href="../index.html">Generate</a><a href="../custom-build/index.html">Custom build</a><a class="active" href="./index.html">Verify</a><a href="../simulation/index.html">Simulation</a><a href="../techniques/index.html">Techniques</a></div></details></nav>
+  <main class="verify-shell">
+    <section class="verify-inputs" aria-labelledby="verify-title">
+      <p class="eyebrow">Puzzle laboratory</p><h1 id="verify-title">Verify</h1>
+      <p class="verify-lede">Check whether an Extra Space Sudoku has a unique solution.</p>
+      <label class="string-input" for="puzzle-string">162-character ExtraSudokuSpace string</label>
+      <textarea id="puzzle-string" rows="3" spellcheck="false" placeholder="First 81 characters: shading (0 or 1). Last 81: digits 1–6 or 0 for empty." aria-describedby="string-help"></textarea>
+      <p id="string-help" class="input-help">Or enter the grid below. A supplied string takes priority. Each row, column and box must have exactly three grey spaces.</p>
+      <div class="entry-layout">
+        <div id="entry-grid" class="sudoku-grid entry-grid" role="grid" aria-label="Enter an Extra Space Sudoku"></div>
+        <div class="verify-actions">
+          <div class="mode-label">Grid editing mode</div>
+          <button id="space-mode" class="secondary-button" type="button" aria-pressed="true">Shade spaces</button>
+          <button id="digit-mode" class="secondary-button" type="button" aria-pressed="false">Enter digits</button>
+          <p id="entry-help" class="input-help">Click cells to toggle their shading.</p>
+          <button id="verify-puzzle" type="button">Verify puzzle</button>
+          <button id="clear-input" class="secondary-button" type="button">Clear input</button>
+          <button id="paste-clipboard" class="secondary-button" type="button">Paste clipboard</button>
+        </div>
+      </div>
+      <p id="verify-status" class="status" aria-live="polite">Enter a puzzle to check its solutions.</p>
+    </section>
+    <section id="verify-results" class="verify-results" aria-label="Verification results"></section>
+  </main>
+  <script type="module" src="./verify.js"></script>
+</body>
+</html>

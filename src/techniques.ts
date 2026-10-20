@@ -5,6 +5,28 @@ export type Change = { cell: number; digit: number };
 export type Step = { technique: string; placements: Change[]; eliminations: Change[]; explanation: string };
 export type State = { pattern: boolean[]; values: number[]; candidates: number[]; units: number[][]; peers: number[][] };
 
+// Relative per-step scores follow the reference catalogue's HoDoKu-style
+// values; they are ordering weights, not calibrated Extra Space ratings.
+export const TECHNIQUES = [
+  {name: 'Full House', score: 4, description: 'Fill the only empty playable cell in a row, column or box.'},
+  {name: 'Naked Single', score: 4, description: 'Place the only candidate left in a cell.'},
+  {name: 'Hidden Single', score: 14, description: 'Place a digit that can occur in only one cell of a unit.'},
+  {name: 'Pointing', score: 50, description: 'A box confines a digit to one row or column, eliminating it elsewhere on that line.'},
+  {name: 'Claiming', score: 50, description: 'A row or column confines a digit to one box, eliminating it elsewhere in that box.'},
+  {name: 'Naked Pair', score: 60, description: 'Two cells in a unit share two candidates, which can be removed from other cells in that unit.'},
+  {name: 'Hidden Pair', score: 70, description: 'Two digits are confined to two cells of a unit, so other candidates can be removed from those cells.'},
+  {name: 'Naked Triple', score: 80, description: 'Three cells in a unit share three candidates, excluding those digits from other cells in that unit.'},
+  {name: 'Hidden Triple', score: 100, description: 'Three digits are confined to three cells of a unit, excluding other candidates there.'},
+  {name: 'Naked Quadruple', score: 120, description: 'Four cells in a unit share four candidates, excluding those digits from the rest of the unit.'},
+  {name: 'X-Wing', score: 140, description: 'A digit confined to two crossing rows and columns can be removed from the other cells on the cover lines.'},
+  {name: 'Hidden Quadruple', score: 150, description: 'Four digits are confined to four cells of a unit, excluding other candidates there.'},
+  {name: 'Swordfish', score: 150, description: 'A three-line fish confines a digit to three crossing lines.'},
+  {name: 'Jellyfish', score: 160, description: 'A four-line fish confines a digit to four crossing lines.'},
+  {name: 'XY-Wing', score: 160, description: 'A pivot and two bivalue wings force a shared wing candidate into at least one wing.'},
+  {name: 'Backtracking / Brute force', score: 10000, description: 'Last resort: search remaining possibilities when no implemented logical technique applies.'},
+];
+export const techniqueScore = (name: string): number => TECHNIQUES.find(item => item.name === name)?.score ?? Number.POSITIVE_INFINITY;
+
 const ALL = 0b111111;
 const bit = (digit: number) => 1 << (digit - 1);
 const digits = (mask: number) => [1, 2, 3, 4, 5, 6].filter(d => mask & bit(d));
@@ -42,7 +64,8 @@ function combinations<T>(items: T[], size: number): T[][] {
 function elimination(technique: string, changes: Change[], explanation: string): Step | null {
   return changes.length ? { technique, placements: [], eliminations: changes, explanation } : null;
 }
-function singles(s: State): Step | null {
+function singles(s: State, kind: string): Step | null {
+  if (kind === 'Full House') {
   for (const unit of s.units) {
     const empty = unit.filter(i => !s.values[i]);
     if (empty.length === 1 && digits(s.candidates[empty[0]]).length === 1) {
@@ -50,22 +73,28 @@ function singles(s: State): Step | null {
       return {technique: 'Full House', placements: [{cell, digit}], eliminations: [], explanation: `${name(cell)} is the only empty cell in its unit.`};
     }
   }
+  }
+  if (kind === 'Naked Single') {
   for (let cell = 0; cell < 81; cell++) {
     const options = digits(s.candidates[cell]);
     if (options.length === 1) return {technique: 'Naked Single', placements: [{cell, digit: options[0]}], eliminations: [], explanation: `${name(cell)} has only one candidate.`};
   }
+  }
+  if (kind === 'Hidden Single') {
   for (const unit of s.units) for (let digit = 1; digit <= 6; digit++) {
     if (unit.some(i => s.values[i] === digit)) continue;
     const cells = unit.filter(i => s.candidates[i] & bit(digit));
     if (cells.length === 1) return {technique: 'Hidden Single', placements: [{cell: cells[0], digit}], eliminations: [], explanation: `${digit} has only one position in a unit.`};
   }
+  }
   return null;
 }
-function intersections(s: State): Step | null {
+function intersections(s: State, kind: string): Step | null {
   for (let box = 18; box < 27; box++) for (let line = 0; line < 18; line++) {
     const intersection = s.units[box].filter(i => s.units[line].includes(i));
     if (!intersection.length) continue;
     for (let digit = 1; digit <= 6; digit++) for (const [from, to, technique] of [[box, line, 'Pointing'], [line, box, 'Claiming']] as [number, number, string][]) {
+      if (technique !== kind) continue;
       const candidates = s.units[from].filter(i => s.candidates[i] & bit(digit));
       if (!candidates.length || !candidates.every(i => intersection.includes(i))) continue;
       const changes = s.units[to].filter(i => !intersection.includes(i) && (s.candidates[i] & bit(digit))).map(cell => ({cell, digit}));
@@ -75,11 +104,11 @@ function intersections(s: State): Step | null {
   }
   return null;
 }
-function subsets(s: State, size: number): Step | null {
+function subsets(s: State, size: number, kind: 'Naked' | 'Hidden'): Step | null {
   const label = ['', '', 'Pair', 'Triple', 'Quadruple'][size];
   for (const unit of s.units) {
     const open = unit.filter(i => s.candidates[i]);
-    for (const cells of combinations(open, size)) {
+    if (kind === 'Naked') for (const cells of combinations(open, size)) {
       const mask = cells.reduce((m, i) => m | s.candidates[i], 0);
       if (digits(mask).length !== size) continue;
       const changes = open.filter(i => !cells.includes(i)).flatMap(cell => digits(s.candidates[cell] & mask).map(digit => ({cell, digit})));
@@ -87,7 +116,7 @@ function subsets(s: State, size: number): Step | null {
       if (step) return step;
     }
     const missing = [1,2,3,4,5,6].filter(d => !unit.some(i => s.values[i] === d));
-    for (const selected of combinations(missing, size)) {
+    if (kind === 'Hidden') for (const selected of combinations(missing, size)) {
       const mask = selected.reduce((m, d) => m | bit(d), 0);
       const cells = open.filter(i => s.candidates[i] & mask);
       if (cells.length !== size || selected.some(d => !cells.some(i => s.candidates[i] & bit(d)))) continue;
@@ -133,9 +162,26 @@ function xyWing(s: State): Step | null {
   return null;
 }
 
-/** Find one logical step, or null if no implemented technique applies. */
+/** Find a step of a specific implemented technique. */
+export function findStepByName(state: State, name: string): Step | null {
+  const finders: Record<string, () => Step | null> = {
+    'Full House': () => singles(state, 'Full House'), 'Naked Single': () => singles(state, 'Naked Single'), 'Hidden Single': () => singles(state, 'Hidden Single'),
+    'Pointing': () => intersections(state, 'Pointing'), 'Claiming': () => intersections(state, 'Claiming'),
+    'Naked Pair': () => subsets(state, 2, 'Naked'), 'Hidden Pair': () => subsets(state, 2, 'Hidden'),
+    'Naked Triple': () => subsets(state, 3, 'Naked'), 'Hidden Triple': () => subsets(state, 3, 'Hidden'),
+    'Naked Quadruple': () => subsets(state, 4, 'Naked'), 'Hidden Quadruple': () => subsets(state, 4, 'Hidden'),
+    'X-Wing': () => fish(state, 2), 'Swordfish': () => fish(state, 3), 'Jellyfish': () => fish(state, 4), 'XY-Wing': () => xyWing(state),
+  };
+  return finders[name]?.() ?? null;
+}
+
+/** Find the lowest-scored available logical step. */
 export function nextStep(state: State): Step | null {
-  return singles(state) ?? intersections(state) ?? subsets(state, 2) ?? subsets(state, 3) ?? subsets(state, 4) ?? fish(state, 2) ?? fish(state, 3) ?? fish(state, 4) ?? xyWing(state);
+  for (const technique of TECHNIQUES) {
+    const step = findStepByName(state, technique.name);
+    if (step) return step;
+  }
+  return null;
 }
 
 /** Apply a step while retaining earlier candidate eliminations. */

@@ -19,3 +19,7 @@ With Node.js 24 or newer, run `node --test tests/techniques.test.mjs` to
 check the logical deductions against the existing backtracking solver.
 After editing `techniques.ts`, run `node scripts/build-techniques.mjs` to
 regenerate the browser module `dist/techniques.js`.
+
+The shared `TECHNIQUES` catalogue determines the solver's priority and both
+display tables. Its per-step scores are HoDoKu-style ordering weights from
+the reference catalogue, not difficulty ratings calibrated for this variant.

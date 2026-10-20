@@ -1,0 +1,12 @@
+.techniques-shell { width:min(960px, calc(100% - 48px)); margin:0 auto; padding:52px 0 80px; }
+.techniques-shell h1 { font-size:clamp(50px, 7vw, 76px); }
+.techniques-intro { max-width:720px; margin:25px 0 12px; color:var(--ink); font:14px/1.8 Manrope,sans-serif; }
+.techniques-note { max-width:720px; margin-bottom:28px; color:var(--muted); font:12px/1.7 Manrope,sans-serif; }
+.techniques-table-wrap { overflow-x:auto; border:1px solid #ded8ca; border-radius:9px; background:#fffdf8; }
+.techniques-table-wrap table { width:100%; border-collapse:collapse; text-align:left; font:13px/1.55 Manrope,sans-serif; }
+.techniques-table-wrap th, .techniques-table-wrap td { padding:14px 16px; border-bottom:1px solid #e5dfd4; vertical-align:top; }
+.techniques-table-wrap th { color:var(--muted); font:11px 'DM Mono',monospace; text-transform:uppercase; letter-spacing:.05em; }
+.techniques-table-wrap td:first-child { min-width:150px; font-weight:700; }
+.techniques-table-wrap td:nth-child(2) { color:var(--orange-dark); font-family:'DM Mono',monospace; white-space:nowrap; }
+.techniques-table-wrap tr:last-child td { border-bottom:0; }
+@media(max-width:600px) { .techniques-shell { width:calc(100% - 32px); padding-top:35px; } .techniques-table-wrap th, .techniques-table-wrap td { padding:11px 10px; } }

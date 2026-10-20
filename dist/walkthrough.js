@@ -1,10 +1,32 @@
-import {createState, nextStep, applyStep} from './techniques.js';
+import {createState, nextStep, applyStep, techniqueScore, TECHNIQUES} from './techniques.js';
 
 const position = (cell) => `r${Math.floor(cell / 9) + 1}c${cell % 9 + 1}`;
 const snapshot = (state, step) => ({values: [...state.values], candidates: [...state.candidates], step});
+export function sortTechniqueGroups(groups) {
+  const order = new Map(TECHNIQUES.map((technique, index) => [technique.name, index]));
+  return [...groups].sort(([a], [b]) => techniqueScore(a) - techniqueScore(b) || order.get(a) - order.get(b));
+}
 
-// Logical techniques are tried first. Only a previously verified unique
-// solution is used as an explicitly labelled backtracking fallback.
+// Search the current candidate state only when every logical finder stalls.
+export function backtrack(state) {
+  const values = [...state.values];
+  function search() {
+    let selected = -1, options = [];
+    for (let cell = 0; cell < 81; cell++) {
+      if (state.pattern[cell] || values[cell]) continue;
+      const used = state.peers[cell].reduce((mask, peer) => mask | (values[peer] ? 1 << (values[peer] - 1) : 0), 0);
+      const candidates = [1,2,3,4,5,6].filter(digit => (state.candidates[cell] & (1 << (digit - 1))) && !(used & (1 << (digit - 1))));
+      if (!candidates.length) return false;
+      if (selected < 0 || candidates.length < options.length) {selected = cell; options = candidates;}
+    }
+    if (selected < 0) return true;
+    for (const digit of options) {values[selected] = digit; if (search()) return true; values[selected] = 0;}
+    return false;
+  }
+  return search() ? values : null;
+}
+
+// Logical techniques are retried after every placement, including fallback.
 export function makeWalkthrough({pattern, dug, values}) {
   const state = createState(pattern, dug);
   const solution = values.flat();
@@ -14,9 +36,11 @@ export function makeWalkthrough({pattern, dug, values}) {
     if (!step) {
       const cell = state.values.findIndex((value, i) => !state.pattern[i] && !value);
       if (cell < 0) break;
-      const digit = solution[cell];
+      const found = backtrack(state);
+      if (!found) throw new Error('Backtracking could not solve the current candidate state.');
+      const digit = found[cell];
       if (!(state.candidates[cell] & (1 << (digit - 1)))) throw new Error('The logical path conflicts with the completed grid.');
-      step = {technique: 'Backtracking', placements: [{cell, digit}], eliminations: [], explanation: `The available techniques cannot progress; backtracking finds ${digit} at ${position(cell)}.`};
+      step = {technique: 'Backtracking / Brute force', placements: [{cell, digit}], eliminations: [], explanation: `The available techniques cannot progress; backtracking finds ${digit} at ${position(cell)} (+10000).`};
     }
     if (step.placements.some(({cell, digit}) => solution[cell] !== digit) || step.eliminations.some(({cell, digit}) => solution[cell] === digit)) throw new Error('A logical step conflicts with the completed grid.');
     applyStep(state, step);
@@ -81,19 +105,19 @@ export function mountWalkthrough(container, puzzle) {
   const heading = document.createElement('h3'); heading.textContent = 'Techniques used';
   const table = document.createElement('table');
   const header = document.createElement('tr');
-  for (const label of ['Technique', 'Steps']) {const th = document.createElement('th'); th.scope = 'col'; th.textContent = label; header.append(th);}
+  for (const label of ['Technique', 'Score', 'Steps']) {const th = document.createElement('th'); th.scope = 'col'; th.textContent = label; header.append(th);}
   const thead = document.createElement('thead'); thead.append(header); const tbody = document.createElement('tbody');
   const groups = new Map();
   steps.slice(1).forEach(({step}, index) => { if (!groups.has(step.technique)) groups.set(step.technique, []); groups.get(step.technique).push(index + 1); });
-  for (const [technique, numbers] of groups) {
-    const row = document.createElement('tr'), label = document.createElement('td'), links = document.createElement('td'); label.textContent = technique;
+  for (const [technique, numbers] of sortTechniqueGroups(groups)) {
+    const row = document.createElement('tr'), label = document.createElement('td'), score = document.createElement('td'), links = document.createElement('td'); label.textContent = technique; score.textContent = `+${techniqueScore(technique)}`;
     numbers.forEach((number, index) => { if (index) links.append(document.createTextNode(', ')); const link = document.createElement('button'); link.type = 'button'; link.className = 'walk-step-link'; link.textContent = String(number); link.setAttribute('aria-label', `Go to step ${number}`); link.addEventListener('click', () => {current = number; update();}); links.append(link); });
-    row.append(label, links); tbody.append(row);
+    row.append(label, score, links); tbody.append(row);
   }
   table.append(thead, tbody); breakdown.append(heading, table); layout.append(boardArea, breakdown); container.append(title, intro, layout); update();
 }
 
-if (typeof document !== 'undefined') {
+if (typeof document !== 'undefined' && document.querySelector('#walkthrough') && typeof window.getCurrentPuzzle === 'function') {
   const container = document.querySelector('#walkthrough');
   const show = (puzzle) => {
     if (!puzzle) return;

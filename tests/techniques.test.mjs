@@ -2,8 +2,9 @@ import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import vm from 'node:vm';
-import {createState, nextStep, applyStep, solveLogically} from '../src/techniques.ts';
-import {makeWalkthrough} from '../dist/walkthrough.js';
+import {createState, nextStep, applyStep, solveLogically, findStepByName, TECHNIQUES, techniqueScore} from '../src/techniques.ts';
+import {makeWalkthrough, backtrack, sortTechniqueGroups} from '../dist/walkthrough.js';
+import {TECHNIQUES as browserTechniques} from '../dist/techniques.js';
 
 // Use the existing independent generator and solution counter as the oracle.
 const source = fs.readFileSync(new URL('../dist/app.js', import.meta.url), 'utf8').split("button.addEventListener('click'")[0];
@@ -66,6 +67,33 @@ test('walkthrough starts with givens and reaches the generated solution', () => 
     assert.deepEqual(steps.at(-1).values, Array.from(solution.flat(), value => value ?? 0));
     for (const {step} of steps.slice(1)) assert.ok(step.placements.length || step.eliminations.length);
   }
+});
+
+test('catalogue, solver priority and walkthrough table use the same ordering', () => {
+  assert.deepEqual(browserTechniques, TECHNIQUES);
+  assert.ok(TECHNIQUES.every((entry, i) => !i || TECHNIQUES[i - 1].score <= entry.score));
+  assert.equal(TECHNIQUES.at(-1).name, 'Backtracking / Brute force');
+  assert.equal(TECHNIQUES.at(-1).score, 10000);
+  assert.deepEqual(sortTechniqueGroups(new Map([['Backtracking / Brute force', [1]], ['Naked Triple', [2]], ['Hidden Pair', [3]], ['Naked Single', [4]]])).map(([name]) => name), ['Naked Single', 'Hidden Pair', 'Naked Triple', 'Backtracking / Brute force']);
+  for (let trial = 0; trial < 3; trial++) {
+    const {pattern, givens} = puzzle(false), state = createState(pattern, givens);
+    for (let n = 0; n < 12; n++) {
+      const step = nextStep(state);
+      if (!step) break;
+      for (const technique of TECHNIQUES.filter(t => t.score < techniqueScore(step.technique))) assert.equal(findStepByName(state, technique.name), null, `${technique.name} should have taken priority over ${step.technique}`);
+      applyStep(state, step);
+    }
+  }
+});
+
+test('fallback searches a stalled candidate state', () => {
+  const {pattern} = puzzle(false);
+  const state = createState(pattern, Array.from({length: 9}, () => Array(9).fill(null)));
+  assert.equal(nextStep(state), null);
+  const result = backtrack(state);
+  assert.ok(result);
+  const solved = Array.from({length: 9}, (_, r) => result.slice(r * 9, r * 9 + 9).map(value => value || null));
+  assert.equal(countSolutions(pattern, solved, 2), 1);
 });
 
 test('deductions also hold for puzzles with multiple solutions', () => {

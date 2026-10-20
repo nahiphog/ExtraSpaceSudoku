@@ -13,14 +13,14 @@
     <style>.grid .cell { aspect-ratio: 1; }</style>
   </head>
   <body>
-    <nav class="site-nav" aria-label="Main navigation"><a class="site-brand" href="../index.html">Extra Space Sudoku</a><details class="nav-menu"><summary>Pages</summary><div><a href="../index.html">Generate</a><a href="../custom-build/index.html">Custom build</a><a class="active" href="./index.html">Simulation</a></div></details></nav>
+    <nav class="site-nav" aria-label="Main navigation"><a class="site-brand" href="../index.html">Extra Space Sudoku</a><details class="nav-menu"><summary>Pages</summary><div><a href="../index.html">Generate</a><a href="../custom-build/index.html">Custom build</a><a href="../verify/index.html">Verify</a><a class="active" href="./index.html">Simulation</a><a href="../techniques/index.html">Techniques</a></div></details></nav>
     <main class="simulation-shell">
       <section class="simulation-intro" aria-labelledby="simulation-title">
         <p class="eyebrow">Grid laboratory</p>
         <h1 id="simulation-title">Simulation</h1>
         <p class="simulation-lede">Generate uniquely dug Extra Space Sudoku puzzles and watch their remaining-clue counts form a distribution.</p>
         <div class="simulation-controls">
-          <label>Total number of trials<select id="trial-count"><option value="1">1</option><option value="10" selected>10</option><option value="50">50</option><option value="100">100</option><option value="500">500</option><option value="1000">1,000</option><option value="10000">10,000</option><option value="100000">100,000</option><option value="1000000">1,000,000</option></select></label>
+          <label>Total number of trials<select id="trial-count"><option value="1">1</option><option value="10">10</option><option value="100">100</option><option value="1000">1,000</option><option value="10000">10,000</option><option value="100000" selected>100,000</option><option value="1000000">1,000,000</option></select></label>
           <label>Only display puzzles with at most<select id="given-cell-limit"><option value="4">4 clues</option><option value="5">5 clues</option><option value="6">6 clues</option><option value="7">7 clues</option><option value="8">8 clues</option><option value="9">9 clues</option><option value="10">10 clues</option><option value="11">11 clues</option><option value="12" selected>12 clues</option><option value="13">13 clues</option><option value="14">14 clues</option><option value="15">15 clues</option></select></label>
           <label>Grid type<select id="symmetry"><option value="false" selected>Any valid pattern</option><option value="true">180° rotational symmetry (paired clues)</option></select></label>
         </div>
@@ -30,7 +30,7 @@
       <section class="results-panel" aria-label="Simulation results">
         <div class="results-heading"><div><p class="eyebrow">Live result</p><h2>Final-puzzle clue tallies</h2></div><p id="tally-summary" class="tally-summary">No puzzles yet</p></div>
         <div id="histogram" class="histogram" role="img" aria-label="Histogram of final puzzle clue tallies"></div>
-        <p class="histogram-note">Every final, irreducible puzzle is counted here. Each result has a unique solution; no displayed clue can be removed on its own.</p>
+        <p class="histogram-note">Every final puzzle is counted here. Each has a unique solution; no remaining clue (or paired clues in symmetry mode) can be removed under the selected digging method.</p>
         <div class="sample-heading"><h2>Qualifying dug puzzles</h2><p>Only puzzles at or under the selected clue cap are shown.</p></div>
         <div id="sample-grids" class="sample-grids" aria-live="polite"></div>
       </section>

@@ -1,0 +1,28 @@
+.verify-shell { width:min(1120px, calc(100% - 48px)); margin:0 auto; padding:52px 0; }
+.verify-inputs { max-width:760px; }
+.verify-inputs h1 { font-size:clamp(50px, 6vw, 72px); }
+.verify-lede, .input-help { color:var(--muted); line-height:1.6; font-size:13px; }
+.string-input { display:block; margin:25px 0 8px; font-weight:700; font-size:13px; }
+#puzzle-string { display:block; width:100%; resize:vertical; padding:12px; border:1px solid #cfc7bb; border-radius:4px; color:var(--ink); background:#fffdf8; font:12px/1.6 'DM Mono', monospace; overflow-wrap:anywhere; }
+.entry-layout { display:grid; grid-template-columns:minmax(0, 420px) minmax(150px, 1fr); gap:22px; align-items:start; margin-top:24px; }
+.entry-grid .entry-cell { width:100%; height:100%; min-width:0; min-height:0; padding:0; border:0; border-right:1px solid #9aa7a7; border-bottom:1px solid #9aa7a7; border-radius:0; outline-offset:-3px; background:#fffdf8; text-align:center; color:var(--ink); font:600 clamp(14px, 3vw, 27px) Fraunces, Georgia, serif; aspect-ratio:1; }
+.entry-grid .entry-cell.shaded { background:var(--shade); color:transparent; }
+.entry-grid .entry-cell.box-right { border-right:2px solid var(--line); }
+.entry-grid .entry-cell.box-bottom { border-bottom:2px solid var(--line); }
+.entry-grid .entry-cell:nth-child(9n) { border-right:0; }
+.entry-grid .entry-cell:nth-child(n+73) { border-bottom:0; }
+.verify-actions { display:flex; flex-direction:column; align-items:stretch; gap:8px; }
+.verify-actions button, .result-copy { padding:10px; border:1px solid var(--orange); border-radius:4px; background:var(--orange); color:white; font:700 12px Manrope,sans-serif; cursor:pointer; }
+.verify-actions .secondary-button, .result-copy { background:#fffdf8; color:var(--orange-dark); }
+.verify-actions [aria-pressed=true] { background:#e8ece6; color:var(--ink); border-color:#80948f; }
+.verify-actions .input-help { margin:3px 0 7px; }
+.mode-label { color:var(--muted); font:11px 'DM Mono',monospace; text-transform:uppercase; }
+.verify-results { display:grid; grid-template-columns:repeat(auto-fit, minmax(min(100%, 260px), 1fr)); gap:20px; margin-top:30px; }
+.verify-card { min-width:0; padding:18px; border:1px solid #ded8ca; border-radius:10px; background:#fffdf8; }
+.verify-card h2 { margin:0 0 12px; font:600 20px Fraunces,Georgia,serif; }
+.verify-card .cell { font-size:clamp(12px, 2vw, 22px); }
+.verify-card .solved { color:#267491; }
+.verify-card .different { background:#ffdfb8; }
+.result-copy { margin-top:12px; }
+.verify-results .walkthrough-panel { grid-column:1 / -1; width:100%; margin:0; }
+@media (max-width:600px) { .verify-shell { width:calc(100% - 32px); padding-top:34px; } .entry-layout { grid-template-columns:1fr; } .entry-grid { width:min(100%, 420px); } .verify-actions { max-width:420px; } }
