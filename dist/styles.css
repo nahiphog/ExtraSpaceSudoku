@@ -30,3 +30,29 @@ footer { width:min(1120px, calc(100% - 48px)); margin:0 auto; padding:18px 0 25p
 
 /* Every rendered board cell is square, including shaded and dug-empty cells. */
 .sudoku-grid .cell { aspect-ratio: 1; }
+
+.walkthrough-panel { width:min(1120px, calc(100% - 48px)); margin:0 auto 48px; padding:28px; border:1px solid #ded8ca; border-radius:12px; background:rgba(255,253,247,.72); box-shadow:0 22px 55px rgba(54,61,58,.06); }
+.walkthrough-panel h2 { margin:0; font:600 clamp(27px, 3vw, 38px) Fraunces, Georgia, serif; letter-spacing:-.04em; }
+.walkthrough-intro { max-width:700px; color:var(--muted); font-size:13px; line-height:1.6; }
+.walkthrough-layout { display:grid; grid-template-columns:minmax(0, 420px) minmax(0, 1fr); gap:36px; margin-top:22px; align-items:start; }
+.walkthrough-board-area { min-width:0; }
+.walkthrough-grid { width:100%; }
+.walkthrough-grid .cell { font-size:clamp(14px, 3vw, 28px); }
+.walkthrough-grid .walk-placed { background:#d8ead8; }
+.walkthrough-grid .walk-affected { background:#fff0dc; }
+.walkthrough-grid .walk-solved { color:#267491; }
+.walk-candidates { width:100%; height:100%; min-width:0; min-height:0; display:grid; grid-template:repeat(2, minmax(0, 1fr)) / repeat(3, minmax(0, 1fr)); align-items:center; justify-items:center; padding:2px; color:#778386; font:500 clamp(7px, 1.1vw, 12px) 'DM Mono', monospace; }
+.walk-removed { color:#b33e32; text-decoration:line-through; }
+.walkthrough-description { min-height:3.4em; color:var(--ink); font-size:13px; line-height:1.55; }
+.walkthrough-board-area input[type=range] { width:100%; accent-color:var(--orange); }
+.walkthrough-controls { display:flex; flex-wrap:wrap; gap:7px; margin:12px 0; }
+.walkthrough-controls button { padding:8px 12px; border:1px solid #d4c7b8; border-radius:4px; background:#fffdf8; color:var(--ink); font:600 12px Manrope,sans-serif; cursor:pointer; }
+.walkthrough-controls button:disabled { opacity:.4; cursor:default; }
+.walkthrough-counter { color:var(--muted); font:11px 'DM Mono',monospace; }
+.walkthrough-breakdown h3 { margin:0 0 12px; font-size:14px; }
+.walkthrough-breakdown table { width:100%; border-collapse:collapse; font-size:12px; text-align:left; }
+.walkthrough-breakdown th, .walkthrough-breakdown td { padding:9px 8px; vertical-align:top; border-bottom:1px solid #e1ddd2; }
+.walkthrough-breakdown th { color:var(--muted); }
+.walk-step-link { padding:2px; border:0; background:none; color:var(--orange-dark); font:inherit; text-decoration:underline; cursor:pointer; }
+@media (max-width:760px) { .walkthrough-layout { grid-template-columns:1fr; gap:28px; } .walkthrough-board-area { width:min(100%, 420px); } }
+@media (max-width:420px) { .walkthrough-panel { width:calc(100% - 32px); padding:16px; } }

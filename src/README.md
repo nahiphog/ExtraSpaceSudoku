@@ -10,9 +10,12 @@ Currently implemented: full house, naked and hidden singles, pointing,
 claiming, naked and hidden pairs/triples/quadruples, X-Wing, Swordfish,
 Jellyfish, and XY-Wing. These are independent implementations, not copied
 from sudokUI. The remaining technique families in the implementation plan
-have not yet been adapted or verified. The engine is not yet connected to
-the site's pages; generation and uniqueness checks retain their existing
-independent backtracking solvers. Difficulty ratings are not implemented.
+have not yet been adapted or verified. The generator walkthrough uses the
+engine, with an explicitly labelled backtracking fallback when logical
+techniques cannot finish. Generation and uniqueness checks retain their
+existing independent backtracking solvers. Difficulty ratings are not implemented.
 
 With Node.js 24 or newer, run `node --test tests/techniques.test.mjs` to
 check the logical deductions against the existing backtracking solver.
+After editing `techniques.ts`, run `node scripts/build-techniques.mjs` to
+regenerate the browser module `dist/techniques.js`.

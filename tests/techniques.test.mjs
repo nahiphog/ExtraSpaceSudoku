@@ -3,10 +3,11 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import vm from 'node:vm';
 import {createState, nextStep, applyStep, solveLogically} from '../src/techniques.ts';
+import {makeWalkthrough} from '../dist/walkthrough.js';
 
 // Use the existing independent generator and solution counter as the oracle.
 const source = fs.readFileSync(new URL('../dist/app.js', import.meta.url), 'utf8').split("button.addEventListener('click'")[0];
-const context = {document: {querySelector: () => ({checked: false})}, Math};
+const context = {document: {querySelector: () => ({checked: false})}, window: {}, Math};
 vm.runInNewContext(`${source}\nglobalThis.api = {makePattern, makeSymmetricPattern, fillDigits, digPuzzle, countSolutions};`, context);
 const {makePattern, makeSymmetricPattern, fillDigits, digPuzzle, countSolutions} = context.api;
 
@@ -55,6 +56,16 @@ test('completed board requires no deductions', () => {
   const result = solveLogically(createState(pattern, solution));
   assert.equal(result.solved, true);
   assert.equal(result.steps.length, 0);
+});
+
+test('walkthrough starts with givens and reaches the generated solution', () => {
+  for (const symmetric of [false, true]) for (let trial = 0; trial < 4; trial++) {
+    const {pattern, givens, solution} = puzzle(symmetric);
+    const steps = makeWalkthrough({pattern, dug: givens, values: solution});
+    assert.deepEqual(steps[0].values, Array.from(givens.flat(), value => value ?? 0));
+    assert.deepEqual(steps.at(-1).values, Array.from(solution.flat(), value => value ?? 0));
+    for (const {step} of steps.slice(1)) assert.ok(step.placements.length || step.eliminations.length);
+  }
 });
 
 test('deductions also hold for puzzles with multiple solutions', () => {

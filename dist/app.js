@@ -254,8 +254,10 @@ function generate() {
   status.textContent = isSymmetric
     ? 'Unique rotationally symmetric puzzle generated.'
     : 'Unique puzzle generated.';
+  window.dispatchEvent(new CustomEvent('puzzle-generated', { detail: currentPuzzle }));
 }
 
+window.getCurrentPuzzle = () => currentPuzzle;
 button.addEventListener('click', generate);
 symmetry.addEventListener('change', generate);
 document.querySelector('#copy-dug').addEventListener('click', () => copyCurrent('dug'));
