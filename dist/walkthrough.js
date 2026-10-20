@@ -60,7 +60,10 @@ export function mountWalkthrough(container, puzzle, {heading = 'Solution walkthr
   const intro = document.createElement('p'); intro.className = 'walkthrough-intro'; intro.textContent = allowBacktracking ? 'Follow the deductions one step at a time. If the available techniques cannot finish, the remaining placements are marked as backtracking.' : 'This puzzle has multiple solutions. Only deductions common to all solutions are shown; the walkthrough may stop before the grid is complete.';
   const layout = document.createElement('div'); layout.className = 'walkthrough-layout';
   const boardArea = document.createElement('div'); boardArea.className = 'walkthrough-board-area';
+  const boardFrame = document.createElement('div'); boardFrame.className = 'walk-grid-frame';
   const board = document.createElement('div'); board.className = 'sudoku-grid walkthrough-grid'; board.setAttribute('role', 'grid'); board.setAttribute('aria-label', 'Walkthrough grid');
+  const arrows = document.createElementNS('http://www.w3.org/2000/svg', 'svg'); arrows.setAttribute('viewBox', '0 0 100 100'); arrows.setAttribute('aria-hidden', 'true'); arrows.setAttribute('class', 'walk-fish-arrows');
+  boardFrame.append(board, arrows);
   const description = document.createElement('p'); description.className = 'walkthrough-description'; description.setAttribute('aria-live', 'polite');
   const patternLegend = document.createElement('p'); patternLegend.className = 'walkthrough-pattern-legend';
   const counter = document.createElement('span'); counter.className = 'walkthrough-counter';
@@ -70,6 +73,22 @@ export function mountWalkthrough(container, puzzle, {heading = 'Solution walkthr
   const update = () => {
     const {values, candidates, step} = steps[current];
     board.replaceChildren();
+    arrows.replaceChildren();
+    boardFrame.className = `walk-grid-frame${step.fish ? ' has-fish' : ''}`;
+    if (step.fish) {
+      const rowLines = step.fish.baseDirection === 'row' ? step.fish.bases : step.fish.covers;
+      const columnLines = step.fish.baseDirection === 'column' ? step.fish.bases : step.fish.covers;
+      const addArrow = (direction, line) => {
+        const center = 7 + (line + 0.5) * 93 / 9;
+        const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+        const shape = direction === 'row'
+          ? `M 1 ${center} L 5.8 ${center} M 3.9 ${center - 1.5} L 5.8 ${center} L 3.9 ${center + 1.5}`
+          : `M ${center} 1 L ${center} 5.8 M ${center - 1.5} 3.9 L ${center} 5.8 L ${center + 1.5} 3.9`;
+        path.setAttribute('d', shape); path.setAttribute('data-direction', direction); path.setAttribute('data-line', String(line + 1)); arrows.append(path);
+      };
+      rowLines.forEach(line => addArrow('row', line));
+      columnLines.forEach(line => addArrow('column', line));
+    }
     values.forEach((value, i) => {
       const r = Math.floor(i / 9), c = i % 9, cell = document.createElement('div');
       const placed = step.placements.some(change => change.cell === i);
@@ -78,7 +97,7 @@ export function mountWalkthrough(container, puzzle, {heading = 'Solution walkthr
       const isBase = fish && fish.bases.includes(fish.baseDirection === 'row' ? r : c);
       const isCover = fish && fish.covers.includes(fish.baseDirection === 'row' ? c : r);
       const isWitness = fish && fish.witnesses.includes(i);
-      cell.className = `cell${puzzle.pattern[r][c] ? ' shaded' : ''}${c % 3 === 2 ? ' box-right' : ''}${r % 3 === 2 ? ' box-bottom' : ''}${placed ? ' walk-placed' : ''}${removed.length ? ' walk-affected' : ''}${value && !givens[i] ? ' walk-solved' : ''}${isBase ? ` walk-fish-base-${fish.baseDirection}` : ''}${isCover ? ` walk-fish-cover-${fish.baseDirection === 'row' ? 'column' : 'row'}` : ''}`;
+      cell.className = `cell${puzzle.pattern[r][c] ? ' shaded' : ''}${c % 3 === 2 ? ' box-right' : ''}${r % 3 === 2 ? ' box-bottom' : ''}${placed ? ' walk-placed' : ''}${removed.length ? ' walk-affected' : ''}${value && !givens[i] ? ' walk-solved' : ''}`;
       cell.setAttribute('role', 'gridcell');
       cell.setAttribute('aria-label', `${position(i)}: ${puzzle.pattern[r][c] ? 'shaded' : value ? String(value) : `candidates ${[1,2,3,4,5,6].filter(d => candidates[i] & (1 << (d-1))).join(', ')}`}${isBase ? ', fish base line' : ''}${isCover ? ', fish cover line' : ''}${isWitness ? `, fish candidate ${fish.digit}` : ''}${removed.length ? `, removed ${removed.map(change => change.digit).join(', ')}` : ''}`);
       if (value) cell.textContent = String(value);
@@ -99,7 +118,7 @@ export function mountWalkthrough(container, puzzle, {heading = 'Solution walkthr
     const placements = step.placements.map(({cell, digit}) => `Place ${digit} at ${position(cell)}.`).join(' ');
     const removals = step.eliminations.map(({cell, digit}) => `${digit} from ${position(cell)}`).join(', ');
     description.textContent = `${step.technique}: ${step.explanation}${placements ? ` ${placements}` : ''}${removals ? ` Remove ${removals}.` : ''}`;
-    patternLegend.textContent = step.fish ? 'Blue bands: base lines · teal bands: cover lines · blue candidate: pattern · red strike-through: removed candidate' : '';
+    patternLegend.textContent = step.fish ? 'Red arrows: involved rows and columns · amber candidates: pattern · red strike-through: removed candidate' : '';
     counter.textContent = `Step ${current} of ${steps.length - 1}`;
     slider.value = String(current);
     buttons[0].disabled = buttons[1].disabled = current === 0;
@@ -108,7 +127,7 @@ export function mountWalkthrough(container, puzzle, {heading = 'Solution walkthr
   const actions = [['First', () => 0], ['Previous', () => Math.max(0, current - 1)], ['Next', () => Math.min(steps.length - 1, current + 1)], ['Last', () => steps.length - 1]];
   actions.forEach(([label, select]) => { const button = document.createElement('button'); button.type = 'button'; button.textContent = label; button.addEventListener('click', () => {current = select(); update();}); buttons.push(button); controls.append(button); });
   slider.addEventListener('input', () => {current = Number(slider.value); update();});
-  boardArea.append(board, description, patternLegend, slider, controls, counter);
+  boardArea.append(boardFrame, description, patternLegend, slider, controls, counter);
   const breakdown = document.createElement('div'); breakdown.className = 'walkthrough-breakdown';
   const breakdownHeading = document.createElement('h3'); breakdownHeading.textContent = 'Techniques used';
   const table = document.createElement('table');

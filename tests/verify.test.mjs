@@ -104,16 +104,20 @@ test('reported Swordfish identifies and highlights its actual rows, columns, and
   }
   const oldDocument = globalThis.document;
   try {
-    globalThis.document = {createElement: tag => new Element(tag), createTextNode: text => ({textContent:text})};
+    globalThis.document = {createElement: tag => new Element(tag), createElementNS: (_namespace, tag) => new Element(tag), createTextNode: text => ({textContent:text})};
     const container = new Element('section');
     mountWalkthrough(container, {...puzzle, values: solutions[0]});
-    const area = container.children[2].children[0], board = area.children[0], slider = area.children[3];
+    const area = container.children[2].children[0], frame = area.children[0], board = frame.children[0], arrows = frame.children[1], slider = area.children[3];
     slider.value = '9'; slider.listeners.input();
     assert.equal(board.children.length, 81);
-    assert.match(board.children[13].className, /walk-fish-base-row/);
-    assert.match(board.children[13].className, /walk-fish-cover-column/);
+    assert.match(frame.className, /has-fish/);
+    assert.deepEqual(arrows.children.map(arrow => [arrow.attributes['data-direction'], arrow.attributes['data-line']]), [['row','2'],['row','5'],['row','9'],['column','4'],['column','5'],['column','8']]);
+    assert.doesNotMatch(board.children[13].className, /walk-fish-base|walk-fish-cover/);
     assert.match(board.children[13].attributes['aria-label'], /fish candidate 1/);
     assert.match(board.children[4].className, /walk-affected/);
-    assert.match(area.children[2].textContent, /Blue bands: base lines/);
+    assert.match(area.children[2].textContent, /Red arrows: involved rows and columns/);
+    slider.value = '8'; slider.listeners.input();
+    assert.equal(arrows.children.length, 0);
+    assert.doesNotMatch(frame.className, /has-fish/);
   } finally {if (oldDocument === undefined) delete globalThis.document; else globalThis.document = oldDocument;}
 });
