@@ -41,7 +41,7 @@ footer { width:min(1120px, calc(100% - 48px)); margin:0 auto; padding:18px 0 25p
 .walkthrough-grid .walk-evidence { background:#fff3c9; }
 .walkthrough-grid .walk-placed { background:#d8ead8; }
 .walkthrough-grid .walk-affected { background:#fff0dc; }
-.walkthrough-grid .walk-solved { color:#267491; }
+.walkthrough-grid .walk-solved { color:#0000ff; }
 .walk-grid-frame { position:relative; width:100%; }
 .walk-grid-frame.has-fish { padding:7% 0 0 7%; }
 .walk-fish-arrows { position:absolute; inset:0; width:100%; height:100%; pointer-events:none; overflow:visible; }
@@ -63,3 +63,5 @@ footer { width:min(1120px, calc(100% - 48px)); margin:0 auto; padding:18px 0 25p
 .walk-step-link { padding:2px; border:0; background:none; color:var(--orange-dark); font:inherit; text-decoration:underline; cursor:pointer; }
 @media (max-width:760px) { .walkthrough-layout { grid-template-columns:1fr; gap:28px; } .walkthrough-board-area { width:min(100%, 420px); } }
 @media (max-width:420px) { .walkthrough-panel { width:calc(100% - 32px); padding:16px; } }
+.sudoku-grid .cell:where(:not(.shaded):not(.empty)) { color:#000; }
+.sudoku-grid .cell.solved, .walkthrough-grid .cell.walk-solved { color:#0000ff; }

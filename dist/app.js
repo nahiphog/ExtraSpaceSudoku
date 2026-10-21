@@ -224,14 +224,14 @@ function digPuzzle(pattern, solution, symmetric = false) {
   return givens;
 }
 
-function render(grid, pattern, values, isDug = false) {
+function render(grid, pattern, values, givens = values) {
   grid.replaceChildren();
   pattern.flat().forEach((shaded, index) => {
     const row = Math.floor(index / 9);
     const col = index % 9;
     const cell = document.createElement('div');
     const empty = !shaded && values[row][col] === null;
-    cell.className = `cell${shaded ? ' shaded' : ''}${empty ? ' empty' : ''}${col % 3 === 2 ? ' box-right' : ''}${row % 3 === 2 ? ' box-bottom' : ''}`;
+    cell.className = `cell${shaded ? ' shaded' : ''}${empty ? ' empty' : ''}${!shaded && !empty && !givens[row][col] ? ' solved' : ''}${col % 3 === 2 ? ' box-right' : ''}${row % 3 === 2 ? ' box-bottom' : ''}`;
     cell.setAttribute('role', 'gridcell');
     if (!shaded && !empty) cell.textContent = values[row][col];
     cell.setAttribute('aria-label', `Row ${row + 1}, column ${col + 1}${shaded ? ', shaded' : empty ? ', empty' : `, ${values[row][col]}`}`);
@@ -246,8 +246,8 @@ function generate() {
   const dug = digPuzzle(pattern, values, isSymmetric);
   currentPuzzle = { pattern, values, dug };
   const clues = dug.flat().filter((value) => value !== null).length;
-  render(puzzleGrid, pattern, dug, true);
-  render(solutionGrid, pattern, values);
+  render(puzzleGrid, pattern, dug);
+  render(solutionGrid, pattern, values, dug);
   clueCount.textContent = `${clues} clues`;
   remaining.textContent = `${clues} cells`;
   elapsed.textContent = `${(performance.now() - started).toFixed(1)} ms`;
