@@ -105,57 +105,7 @@ function digitsFromMask(mask) {
 // Randomized minimum-remaining-values search. A white cell is assigned only
 // when its digit remains unique in its row, column, and 3×3 outlined region.
 function fillDigits(pattern) {
-  const values = Array.from({ length: 9 }, () => Array(9).fill(null));
-  const rowUsed = Array(9).fill(0);
-  const columnUsed = Array(9).fill(0);
-  const boxUsed = Array(9).fill(0);
-  const cells = [];
-
-  for (let row = 0; row < 9; row++) {
-    for (let column = 0; column < 9; column++) {
-      if (!pattern[row][column]) cells.push({ row, column, box: boxIndex(row, column) });
-    }
-  }
-
-  function solve(remaining) {
-    if (!remaining.length) return true;
-    let bestCount = 7;
-    let bestIndexes = [];
-    const candidates = new Map();
-
-    remaining.forEach((cell, index) => {
-      const used = rowUsed[cell.row] | columnUsed[cell.column] | boxUsed[cell.box];
-      const options = digitsFromMask(used);
-      candidates.set(index, options);
-      if (options.length < bestCount) {
-        bestCount = options.length;
-        bestIndexes = [index];
-      } else if (options.length === bestCount) {
-        bestIndexes.push(index);
-      }
-    });
-
-    if (!bestCount) return false;
-    const chosenIndex = bestIndexes[Math.floor(Math.random() * bestIndexes.length)];
-    const cell = remaining[chosenIndex];
-    const next = remaining.filter((_, index) => index !== chosenIndex);
-
-    for (const digit of candidates.get(chosenIndex)) {
-      const flag = 1 << digit;
-      values[cell.row][cell.column] = digit;
-      rowUsed[cell.row] |= flag;
-      columnUsed[cell.column] |= flag;
-      boxUsed[cell.box] |= flag;
-      if (solve(next)) return true;
-      values[cell.row][cell.column] = null;
-      rowUsed[cell.row] &= ~flag;
-      columnUsed[cell.column] &= ~flag;
-      boxUsed[cell.box] &= ~flag;
-    }
-    return false;
-  }
-
-  return solve(cells) ? values : null;
+  return globalThis.ExtraSpaceFill(pattern).values;
 }
 
 function makePuzzle(isSymmetric = symmetry.checked) {

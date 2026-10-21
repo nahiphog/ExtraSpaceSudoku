@@ -7,6 +7,7 @@ import {makeWalkthrough, mountWalkthrough, stepVisuals} from '../dist/walkthroug
 
 const source = fs.readFileSync(new URL('../dist/app.js', import.meta.url), 'utf8').split("button.addEventListener('click'")[0];
 const context = {document: {querySelector: () => ({checked: false})}, window: {}, Math};
+vm.runInNewContext(fs.readFileSync(new URL('../dist/fill-solver.js', import.meta.url), 'utf8'), context);
 vm.runInNewContext(`${source}\nglobalThis.api = {makePattern, fillDigits, digPuzzle, countSolutions};`, context);
 const {makePattern, fillDigits, digPuzzle, countSolutions} = context.api;
 function sample() {

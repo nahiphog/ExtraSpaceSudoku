@@ -10,6 +10,7 @@ import {ratePuzzle, formatRating} from '../dist/rating.js';
 // Use the existing independent generator and solution counter as the oracle.
 const source = fs.readFileSync(new URL('../dist/app.js', import.meta.url), 'utf8').split("button.addEventListener('click'")[0];
 const context = {document: {querySelector: () => ({checked: false})}, window: {}, Math};
+vm.runInNewContext(fs.readFileSync(new URL('../dist/fill-solver.js', import.meta.url), 'utf8'), context);
 vm.runInNewContext(`${source}\nglobalThis.api = {makePattern, makeSymmetricPattern, fillDigits, digPuzzle, countSolutions};`, context);
 const {makePattern, makeSymmetricPattern, fillDigits, digPuzzle, countSolutions} = context.api;
 
