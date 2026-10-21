@@ -20,6 +20,7 @@
           <button id="generate" class="generate-button" type="button">
             <span class="spark">✦</span> Generate <span class="shortcut">G</span>
           </button>
+          <button id="stop-generation" class="simulation-button stop-generation" type="button" hidden>Stop search</button>
           <a class="simulation-button" href="./simulation/index.html">Simulation <span aria-hidden="true">↗</span></a>
           <a class="simulation-button" href="./custom-build/index.html">Custom build <span aria-hidden="true">↗</span></a>
           <a class="simulation-button" href="./verify/index.html">Verify <span aria-hidden="true">↗</span></a>
@@ -30,6 +31,16 @@
           <span class="toggle-track" aria-hidden="true"><span></span></span>
           <span><strong>Rotational symmetry</strong><small>Match shading and clue positions after a 180° turn</small></span>
         </label>
+        <fieldset class="difficulty-range">
+          <legend>Difficulty range (inclusive)</legend>
+          <label for="difficulty-min">Minimum
+            <select id="difficulty-min"><option value="0">0</option><option value="300">300</option><option value="500">500</option><option value="800">800</option><option value="1000">1000</option></select>
+          </label>
+          <label for="difficulty-max">Maximum
+            <select id="difficulty-max"><option value="300">300</option><option value="500">500</option><option value="800">800</option><option value="1000">1000</option><option value="2000" selected>2000</option><option value="10000">10000</option><option value="100000">100000</option></select>
+          </label>
+        </fieldset>
+        <p class="generation-attempts" aria-live="polite">Attempts: <strong id="attempts">0</strong></p>
         <p id="status" class="status" aria-live="polite">Ready for a new arrangement.</p>
       </section>
 

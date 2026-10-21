@@ -6,7 +6,12 @@ const symmetry = document.querySelector('#symmetry');
 const clueCount = document.querySelector('#clue-count');
 const elapsed = document.querySelector('#elapsed');
 const remaining = document.querySelector('#remaining');
+const difficultyMin = document.querySelector('#difficulty-min');
+const difficultyMax = document.querySelector('#difficulty-max');
+const attemptCount = document.querySelector('#attempts');
+const stopButton = document.querySelector('#stop-generation');
 let currentPuzzle = null;
+let searchId = 0;
 
 function shuffled(values) {
   const copy = [...values];
@@ -133,10 +138,10 @@ function fillDigits(pattern) {
   return solve(cells) ? values : null;
 }
 
-function makePuzzle() {
+function makePuzzle(isSymmetric = symmetry.checked) {
   // Regenerate the shading if an unusual layout has no compatible 1–6 fill.
   for (let attempt = 0; attempt < 100; attempt++) {
-    const pattern = symmetry.checked ? makeSymmetricPattern() : makePattern();
+    const pattern = isSymmetric ? makeSymmetricPattern() : makePattern();
     const values = fillDigits(pattern);
     if (values) return { pattern, values };
   }
@@ -239,27 +244,75 @@ function render(grid, pattern, values, givens = values) {
   });
 }
 
-function generate() {
+async function generate() {
+  if (button.disabled) return;
+  const min = Number(difficultyMin.value), max = Number(difficultyMax.value);
+  if (min > max) {
+    status.textContent = 'Minimum difficulty must not exceed maximum difficulty.';
+    return;
+  }
+  const id = ++searchId;
   const started = performance.now();
   const isSymmetric = symmetry.checked;
-  const { pattern, values } = makePuzzle();
-  const dug = digPuzzle(pattern, values, isSymmetric);
-  currentPuzzle = { pattern, values, dug };
-  const clues = dug.flat().filter((value) => value !== null).length;
-  render(puzzleGrid, pattern, dug);
-  render(solutionGrid, pattern, values, dug);
-  clueCount.textContent = `${clues} clues`;
-  remaining.textContent = `${clues} cells`;
-  elapsed.textContent = `${(performance.now() - started).toFixed(1)} ms`;
-  status.textContent = isSymmetric
-    ? 'Unique rotationally symmetric puzzle generated.'
-    : 'Unique puzzle generated.';
-  window.dispatchEvent(new CustomEvent('puzzle-generated', { detail: currentPuzzle }));
+  let attempts = 0;
+  button.disabled = true;
+  symmetry.disabled = true;
+  difficultyMin.disabled = difficultyMax.disabled = true;
+  stopButton.hidden = false;
+  attemptCount.textContent = '0';
+  status.textContent = `Searching for a unique puzzle with difficulty ${min}–${max}…`;
+  const finish = () => {
+    button.disabled = false;
+    symmetry.disabled = false;
+    difficultyMin.disabled = difficultyMax.disabled = false;
+    stopButton.hidden = true;
+  };
+  try {
+    const {ratePuzzle, formatRating} = await import('./rating.js');
+    while (id === searchId) {
+      // Yield between attempts so the browser can paint progress and handle Stop.
+      await new Promise(resolve => requestAnimationFrame(resolve));
+      if (id !== searchId) return;
+      const { pattern, values } = makePuzzle(isSymmetric);
+      const dug = digPuzzle(pattern, values, isSymmetric);
+      const rating = ratePuzzle(pattern, dug);
+      attempts++;
+      attemptCount.textContent = attempts.toLocaleString();
+      if (rating.score < min || rating.score > max) continue;
+      currentPuzzle = { pattern, values, dug };
+      const clues = dug.flat().filter((value) => value !== null).length;
+      render(puzzleGrid, pattern, dug);
+      render(solutionGrid, pattern, values, dug);
+      clueCount.textContent = `${clues} clues`;
+      remaining.textContent = `${clues} cells`;
+      elapsed.textContent = `${(performance.now() - started).toFixed(1)} ms`;
+      document.querySelector('#difficulty').textContent = formatRating(rating);
+      status.textContent = isSymmetric
+        ? 'Unique rotationally symmetric puzzle generated.'
+        : 'Unique puzzle generated.';
+      window.dispatchEvent(new CustomEvent('puzzle-generated', { detail: currentPuzzle }));
+      finish();
+      return;
+    }
+  } catch (error) {
+    if (id === searchId) {
+      finish();
+      status.textContent = `Generation failed: ${error.message}`;
+    }
+  }
 }
 
 window.getCurrentPuzzle = () => currentPuzzle;
 button.addEventListener('click', generate);
 symmetry.addEventListener('change', generate);
+stopButton.addEventListener('click', () => {
+  searchId++;
+  button.disabled = false;
+  symmetry.disabled = false;
+  difficultyMin.disabled = difficultyMax.disabled = false;
+  stopButton.hidden = true;
+  status.textContent = `Search stopped after ${attemptCount.textContent} attempts.`;
+});
 document.querySelector('#copy-dug').addEventListener('click', () => copyCurrent('dug'));
 document.querySelector('#copy-solution').addEventListener('click', () => copyCurrent('solution'));
 window.addEventListener('keydown', (event) => {
