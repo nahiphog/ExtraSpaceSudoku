@@ -1,4 +1,5 @@
-importScripts('../fill-solver.js');
+import '../fill-solver.js';
+import {ratePuzzle} from '../rating.js';
 
 // Count only as far as two: that is enough to distinguish uniqueness.
 function countSolutions(pattern, givens) {
@@ -34,7 +35,7 @@ function countSolutions(pattern, givens) {
   return count;
 }
 
-self.onmessage = ({data: {pattern, highlights}}) => {
+self.onmessage = ({data: {pattern, highlights, minDifficulty, maxDifficulty}}) => {
   let attempts = 0, filled = 0;
   try {
     for (;;) {
@@ -53,8 +54,12 @@ self.onmessage = ({data: {pattern, highlights}}) => {
       const givens = Array.from({length: 9}, () => Array(9).fill(null));
       for (const k of highlights) givens[Math.floor(k / 9)][k % 9] = result.values[Math.floor(k / 9)][k % 9];
       if (countSolutions(pattern, givens) === 1) {
-        self.postMessage({type: 'success', givens, attempts, filled});
-        return;
+        self.postMessage({type: 'progress', phase: 'Checking difficulty', attempts, filled});
+        const rating = ratePuzzle(pattern, givens);
+        if (rating.score >= minDifficulty && rating.score <= maxDifficulty) {
+          self.postMessage({type: 'success', givens, values: result.values, rating, attempts, filled});
+          return;
+        }
       }
     }
   } catch (error) {
