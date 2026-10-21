@@ -74,7 +74,7 @@ test('halting terminates the worker and preserves selections', () => {
   const document = {querySelector: selector => {if (!elements.has(selector)) elements.set(selector, makeElement()); return elements.get(selector);}, createElement: makeElement};
   let activeWorker;
   class FakeWorker {
-    constructor() { activeWorker = this; }
+    constructor(url, options) { activeWorker = this; this.url = url; this.options = options; }
     postMessage(data) { this.data = data; }
     terminate() { this.terminated = true; }
   }
@@ -85,6 +85,8 @@ test('halting terminates the worker and preserves selections', () => {
   context.testPattern = grid;
   vm.runInContext('pattern = testPattern; highlights = new Set([1, 2, 4]); render()', context);
   elements.get('#build-now').onclick();
+  assert.equal(activeWorker.url, './build-worker.js?v=2');
+  assert.equal(activeWorker.options.type, 'module');
   assert.equal(elements.get('#halt-build').disabled, false);
   assert.deepEqual(Array.from(activeWorker.data.highlights), [1, 2, 4]);
   assert.equal(activeWorker.data.minDifficulty, 0);

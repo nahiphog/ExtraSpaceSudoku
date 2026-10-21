@@ -20,7 +20,7 @@ $('#build-now').onclick=()=>{
   for(const id of ['#space-mode','#clue-mode','#new-pattern','#clear-highlights','#difficulty-min','#difficulty-max'])$(id).disabled=true;
   render();updateProgress();
   try {
-    const active=new Worker('./build-worker.js',{type:'module'});worker=active;
+    const active=new Worker('./build-worker.js?v=2',{type:'module'});worker=active;
     active.onmessage=({data})=>{
       if(worker!==active)return;
       attempts=data.attempts;filled=data.filled;
@@ -31,7 +31,7 @@ $('#build-now').onclick=()=>{
       else if(data.type==='impossible')status.textContent=`This grey pattern has no valid completed grid (proved after ${attempts.toLocaleString()} fill attempts). Change the grey pattern and try again.`;
       else status.textContent=`Build failed: ${data.message}`;
     };
-    active.onerror=()=>{if(worker!==active)return;stopWorker();status.textContent='Could not run the build worker. Serve this site over HTTP and try again.'};
+    active.onerror=(event)=>{if(worker!==active)return;stopWorker();status.textContent=`Could not run the build worker${event.message?`: ${event.message}`:'. Please reload the page and check the browser console for details.'}`};
     progressTimer=setInterval(updateProgress,250);
     active.postMessage({pattern:pattern.map(row=>[...row]),highlights:[...highlights],minDifficulty,maxDifficulty});
   } catch(error){stopWorker();status.textContent=`Could not start the build: ${error.message}`}
