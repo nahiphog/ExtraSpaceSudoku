@@ -9,9 +9,29 @@ const remaining = document.querySelector('#remaining');
 const difficultyMin = document.querySelector('#difficulty-min');
 const difficultyMax = document.querySelector('#difficulty-max');
 const attemptCount = document.querySelector('#attempts');
-const stopButton = document.querySelector('#stop-generation');
+const generateLabel = document.querySelector('#generate-label');
 let currentPuzzle = null;
 let searchId = 0;
+let isGenerating = false;
+
+function setGenerating(running) {
+  isGenerating = running;
+  generateLabel.textContent = running ? 'Halt generation' : 'Generate';
+  button.classList.toggle('is-running', running);
+  symmetry.disabled = running;
+  difficultyMin.disabled = difficultyMax.disabled = running;
+}
+
+function haltGeneration() {
+  searchId++;
+  setGenerating(false);
+  status.textContent = `Search stopped after ${attemptCount.textContent} attempts.`;
+}
+
+function toggleGeneration() {
+  if (isGenerating) haltGeneration();
+  else generate();
+}
 
 function shuffled(values) {
   const copy = [...values];
@@ -245,7 +265,7 @@ function render(grid, pattern, values, givens = values) {
 }
 
 async function generate() {
-  if (button.disabled) return;
+  if (isGenerating) return;
   const min = Number(difficultyMin.value), max = Number(difficultyMax.value);
   if (min > max) {
     status.textContent = 'Minimum difficulty must not exceed maximum difficulty.';
@@ -255,18 +275,10 @@ async function generate() {
   const started = performance.now();
   const isSymmetric = symmetry.checked;
   let attempts = 0;
-  button.disabled = true;
-  symmetry.disabled = true;
-  difficultyMin.disabled = difficultyMax.disabled = true;
-  stopButton.hidden = false;
+  setGenerating(true);
   attemptCount.textContent = '0';
   status.textContent = `Searching for a unique puzzle with difficulty ${min}–${max}…`;
-  const finish = () => {
-    button.disabled = false;
-    symmetry.disabled = false;
-    difficultyMin.disabled = difficultyMax.disabled = false;
-    stopButton.hidden = true;
-  };
+  const finish = () => setGenerating(false);
   try {
     const {ratePuzzle, formatRating} = await import('./rating.js');
     while (id === searchId) {
@@ -303,19 +315,11 @@ async function generate() {
 }
 
 window.getCurrentPuzzle = () => currentPuzzle;
-button.addEventListener('click', generate);
+button.addEventListener('click', toggleGeneration);
 symmetry.addEventListener('change', generate);
-stopButton.addEventListener('click', () => {
-  searchId++;
-  button.disabled = false;
-  symmetry.disabled = false;
-  difficultyMin.disabled = difficultyMax.disabled = false;
-  stopButton.hidden = true;
-  status.textContent = `Search stopped after ${attemptCount.textContent} attempts.`;
-});
 document.querySelector('#copy-dug').addEventListener('click', () => copyCurrent('dug'));
 document.querySelector('#copy-solution').addEventListener('click', () => copyCurrent('solution'));
 window.addEventListener('keydown', (event) => {
-  if (event.key.toLowerCase() === 'g' && !/input|textarea|select/i.test(document.activeElement.tagName)) generate();
+  if (event.key.toLowerCase() === 'g' && !/input|textarea|select/i.test(document.activeElement.tagName)) toggleGeneration();
 });
 generate();
