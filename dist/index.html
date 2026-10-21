@@ -16,6 +16,18 @@
         <div class="eyebrow"><span></span> pattern studio</div>
         <h1 id="page-title">Extra Space<br /><em>Sudoku</em></h1>
         <p class="intro">A precise spatial puzzle: three shaded cells and the digits 1–6 exactly once in every row, column, and box.</p>
+        <fieldset class="difficulty-range" aria-describedby="difficulty-help">
+          <legend>Choose puzzle difficulty</legend>
+          <p id="difficulty-help">Generate a puzzle with a difficulty score in this range, inclusive.</p>
+          <div class="difficulty-selects">
+            <label for="difficulty-min">Minimum score
+              <select id="difficulty-min"><option value="0">0</option><option value="300">300</option><option value="500">500</option><option value="800">800</option><option value="1000">1000</option></select>
+            </label>
+            <label for="difficulty-max">Maximum score
+              <select id="difficulty-max"><option value="300">300</option><option value="500">500</option><option value="800">800</option><option value="1000">1000</option><option value="2000" selected>2000</option><option value="10000">10000</option><option value="100000">100000</option></select>
+            </label>
+          </div>
+        </fieldset>
         <div class="hero-actions">
           <button id="generate" class="generate-button" type="button">
             <span class="spark">✦</span> Generate <span class="shortcut">G</span>
@@ -31,15 +43,6 @@
           <span class="toggle-track" aria-hidden="true"><span></span></span>
           <span><strong>Rotational symmetry</strong><small>Match shading and clue positions after a 180° turn</small></span>
         </label>
-        <fieldset class="difficulty-range">
-          <legend>Difficulty range (inclusive)</legend>
-          <label for="difficulty-min">Minimum
-            <select id="difficulty-min"><option value="0">0</option><option value="300">300</option><option value="500">500</option><option value="800">800</option><option value="1000">1000</option></select>
-          </label>
-          <label for="difficulty-max">Maximum
-            <select id="difficulty-max"><option value="300">300</option><option value="500">500</option><option value="800">800</option><option value="1000">1000</option><option value="2000" selected>2000</option><option value="10000">10000</option><option value="100000">100000</option></select>
-          </label>
-        </fieldset>
         <p class="generation-attempts" aria-live="polite">Attempts: <strong id="attempts">0</strong></p>
         <p id="status" class="status" aria-live="polite">Ready for a new arrangement.</p>
       </section>
